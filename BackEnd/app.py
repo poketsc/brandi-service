@@ -8,11 +8,6 @@ def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"*": {"origins": "*"}})
 
-###############초기세팅용#################
-    # services.test_service = TestService()
-    # services.user_service = UserService()
-###############초기세팅용#################
-
     create_endpoints(app)
 
     @app.errorhandler(CustomError)
