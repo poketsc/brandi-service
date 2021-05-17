@@ -1,6 +1,6 @@
 import pymysql
 
-from config import database
+from BackEnd.config import database
 
 def connect_db():
     return pymysql.connect(
