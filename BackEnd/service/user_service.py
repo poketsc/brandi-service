@@ -2,6 +2,7 @@ from flask import jsonify
 
 from BackEnd.model.user_dao import TestDao, UserDao
 from BackEnd.util.exception import ValidationError
+from BackEnd.util.message   import INVALID_NAME
 
 #################################초기세팅#############################
 class TestService:
@@ -9,13 +10,15 @@ class TestService:
     def test_service(self, data, connection):
         test_dao = TestDao()
             
-        if len(data['name']) < 3:
-            raise ValidationError('message', 400)
+        try:
+            if len(data['size']) < 3:
+                raise ValidationError(INVALID_NAME, 400)
             
-        else:
-            results = test_dao.post_test(data, connection)
+            else:
+                return test_dao.post_test(data, connection)
 
-            return results
+        except ValidationError as e:
+            raise e
 
 class UserService:
     def user_service(self, connection):

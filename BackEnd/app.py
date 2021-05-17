@@ -1,23 +1,24 @@
 from flask      import Flask
 from flask_cors import CORS
 
-from BackEnd.view import create_endpoints
-from BackEnd.service.user_service import TestService, UserService
-
-class Services:
-    pass
+from BackEnd.view           import create_endpoints
+from BackEnd.util.exception import CustomError
 
 def create_app():
     app = Flask(__name__)
     CORS(app, resources={r"*": {"origins": "*"}})
+
+###############초기세팅용#################
+    # services.test_service = TestService()
+    # services.user_service = UserService()
+###############초기세팅용#################
+
+    create_endpoints(app)
+
+    @app.errorhandler(CustomError)
+    def handle_errors(e):
+        result = {'message' : e.message, 'status_code' : e.status_code}
     
-    services = Services
-
-###############초기세팅용#################
-    services.test_service = TestService()
-    services.user_service = UserService()
-###############초기세팅용#################
-
-    create_endpoints(app, services)
+        return result
 
     return app
