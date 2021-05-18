@@ -1,53 +1,73 @@
-create table account_type
+-- 테이블 생성
+
+create table if not exists account_type
 (
-    Id           int auto_increment
+    Id           int(11) unsigned auto_increment
         primary key,
     account_type varchar(45) not null comment '계정 타입'
 )
-    comment '계정 분류';
+    comment '계정 분류'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table accounts
+create table if not exists accounts
 (
-    Id              int auto_increment
+    Id              int(11) unsigned auto_increment
         primary key,
-    nickname        varchar(20) not null comment 'u,a,m 계정 관리',
+    nickname        varchar(20) not null comment '계정 닉네임',
     created_at      datetime    not null comment '계정 생성 날짜',
-    account_type_id int         not null comment '계정 타입',
+    account_type_id int(11) unsigned        not null comment '계정 타입',
     constraint FK_accounts_account_type_id_account_type_Id
         foreign key (account_type_id) references account_type (Id)
 )
-    comment '계정';
+    comment '계정'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table action_status
+create table if not exists action_status
 (
-    Id     int auto_increment
+    Id     int(11) unsigned auto_increment
         primary key,
     status varchar(10) not null comment '상태'
 )
-    comment '셀러 상품 판매상태';
+    comment '셀러 상품 판매상태'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table colors
+
+create table if not exists colors
 (
-    Id    int auto_increment
+    Id    int(11) unsigned auto_increment
         primary key,
     color varchar(10) not null comment '색상'
 )
-    comment '상품색상';
+    comment '상품색상'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table masters
+
+create table if not exists masters
 (
-    Id int not null
+    Id int(11) unsigned not null
         primary key,
     constraint FK_masters_Id_accounts_Id
         foreign key (Id) references accounts (Id)
 )
-    comment '마스터계정';
+    comment '마스터계정'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table master_histories
+
+create table if not exists master_histories
 (
-    Id         int auto_increment
+    Id         int(11) unsigned auto_increment
         primary key,
-    master_id  int         not null comment '마스터',
+    master_id  int(11) unsigned         not null comment '마스터',
     is_deleted tinyint     not null comment '삭제 여부',
     start_time datetime    not null comment '변경 시작일',
     end_time   datetime    not null comment '변경 종료일',
@@ -55,83 +75,115 @@ create table master_histories
     constraint FK_master_histories_master_id_masters_Id
         foreign key (master_id) references masters (Id)
 )
-    comment '마스터 히스토리';
+    comment '마스터 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table order_status
+
+create table if not exists order_status
 (
-    Id           int auto_increment
+    Id           int(11) unsigned auto_increment
         primary key,
     order_status varchar(10) not null comment '주문 상태'
 )
-    comment '주문 상태';
+    comment '주문 상태'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table payment_status
+
+create table if not exists payment_status
 (
-    Id             int auto_increment
+    Id             int(11) unsigned auto_increment
         primary key,
     payment_status varchar(45) not null comment '결제 상태'
 )
-    comment '결제 상태';
+    comment '결제 상태'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table question_categories
+
+create table if not exists question_categories
 (
-    Id   int auto_increment
+    Id   int(11) unsigned auto_increment
         primary key,
     name varchar(10) null comment '분류 이름'
 )
-    comment 'Q&A 분류';
+    comment 'Q&A 분류'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table seller_categories
+
+create table if not exists seller_categories
 (
-    Id   int auto_increment
+    Id   int(11) unsigned auto_increment
         primary key,
     name varchar(8) not null comment '1차 카테고리 명'
 )
-    comment '셀러_1차분류';
+    comment '셀러_1차분류'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table seller_subcategories
+
+create table if not exists seller_subcategories
 (
-    Id                 int auto_increment
+    Id                 int(11) unsigned auto_increment
         primary key,
-    seller_category_id int        not null comment '1차 카테고리',
+    seller_category_id int(11) unsigned        not null comment '1차 카테고리',
     name               varchar(8) not null comment '2차 카테고리 명',
     constraint FK_seller_subcategories_seller_category_id_seller_categories_Id
         foreign key (seller_category_id) references seller_categories (Id)
 )
-    comment '셀러_2차분류';
+    comment '셀러_2차분류'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table sellers
+
+create table if not exists sellers
 (
-    Id                    int not null
+    Id                    int(11) unsigned not null
         primary key,
-    seller_subcategory_id int not null comment '셀러정보',
+    seller_subcategory_id int(11) unsigned not null comment '셀러정보',
     constraint FK_sellers_Id_accounts_Id
         foreign key (Id) references accounts (Id),
     constraint FK_sellers_seller_subcategory_id_seller_subcategories_Id
         foreign key (seller_subcategory_id) references seller_subcategories (Id)
 )
-    comment '셀러계정';
+    comment '셀러계정'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table products
+
+create table if not exists products
 (
-    Id         int auto_increment
+    Id         int(11) unsigned auto_increment
         primary key,
-    account_id int      not null comment '최초 등록자',
-    seller_id  int      not null comment '셀러',
+    account_id int(11) unsigned      not null comment '최초 등록자',
+    seller_id  int(11) unsigned      not null comment '셀러',
     created_at datetime not null comment '최초 등록일',
     constraint FK_products_account_id_accounts_Id
         foreign key (account_id) references accounts (Id),
     constraint FK_products_seller_id_sellers_Id
         foreign key (seller_id) references sellers (Id)
 )
-    comment '상품';
+    comment '상품'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table product_histories
+
+create table if not exists product_histories
 (
-    Id                    int auto_increment
+    Id                    int(11) unsigned auto_increment
         primary key,
-    account_id            int            not null comment '수정자',
-    product_id            int            not null comment '상품',
+    account_id            int(11) unsigned            not null comment '수정자',
+    product_id            int(11) unsigned            not null comment '상품',
     name                  varchar(40)    not null comment '상품 이름',
     shipment_information  varchar(10)    not null comment '배송정보',
     price                 decimal(10, 2) not null comment '가격',
@@ -152,27 +204,35 @@ create table product_histories
     constraint FK_product_histories_product_id_products_Id
         foreign key (product_id) references products (Id)
 )
-    comment '상품 히스토리';
+    comment '상품 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table product_images
+
+create table if not exists product_images
 (
-    Id         int auto_increment
+    Id         int(11) unsigned auto_increment
         primary key,
-    product_id int           not null comment '상품',
+    product_id int(11) unsigned           not null comment '상품',
     image_url  varchar(2000) not null comment '이미지 URL',
     is_main    tinyint       not null comment '대표이미지 여부',
     constraint FK_product_images_product_id_products_Id
         foreign key (product_id) references products (Id)
 )
-    comment '상품이미지';
+    comment '상품이미지'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table seller_histories
+
+create table if not exists seller_histories
 (
-    Id                   int auto_increment
+    Id                   int(11) unsigned auto_increment
         primary key,
-    account_id           int           not null comment '수정자',
-    action_status_id     int           not null comment '셀러 상태',
-    seller_id            int           not null comment '셀러',
+    account_id           int(11) unsigned           not null comment '수정자',
+    action_status_id     int(11) unsigned           not null comment '셀러 상태',
+    seller_id            int(11) unsigned           not null comment '셀러',
     start_time           datetime      not null comment '변경 시작일',
     end_time             datetime      not null comment '변경 종료일',
     password             varchar(60)   not null comment '비밀번호',
@@ -197,14 +257,18 @@ create table seller_histories
     constraint FK_seller_histories_seller_id_sellers_Id
         foreign key (seller_id) references sellers (Id)
 )
-    comment '셀러 히스토리';
+    comment '셀러 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table seller_clerks
+
+create table if not exists seller_clerks
 (
-    Id                int auto_increment
+    Id                int(11) unsigned auto_increment
         primary key,
-    seller_id         int          not null comment '셀러',
-    seller_history_id int          not null comment '셀러 히스토리',
+    seller_id         int(11) unsigned          not null comment '셀러',
+    seller_history_id int(11) unsigned          not null comment '셀러 히스토리',
     name              varchar(20)  not null comment '담당자 이름',
     email             varchar(320) not null comment '담당자 이메일',
     phone_number      varchar(11)  not null comment '담당자 핸드폰 번호',
@@ -214,39 +278,55 @@ create table seller_clerks
     constraint FK_seller_clerks_seller_id_sellers_Id
         foreign key (seller_id) references sellers (Id)
 )
-    comment '담당자 정보';
+    comment '담당자 정보'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table shipment_memo
+
+create table if not exists shipment_memo
 (
-    Id      int auto_increment
+    Id      int(11) unsigned auto_increment
         primary key,
     content varchar(20) not null comment '내용'
 )
-    comment '배송 메세지';
+    comment '배송 메세지'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table shipment_status
+
+create table if not exists shipment_status
 (
-    Id              int auto_increment
+    Id              int(11) unsigned auto_increment
         primary key,
     shipment_status varchar(45) not null comment '배송 상태'
 )
-    comment '배송 상태';
+    comment '배송 상태'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table sizes
+
+create table if not exists sizes
 (
-    Id   int auto_increment
+    Id   int(11) unsigned auto_increment
         primary key,
     size varchar(5) not null comment '크기'
 )
-    comment '상품사이즈';
+    comment '상품사이즈'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table product_options
+
+create table if not exists product_options
 (
-    Id          int auto_increment
+    Id          int(11) unsigned auto_increment
         primary key,
-    product_id  int     not null comment '상품',
-    size_id     int     not null comment '크기',
-    color_id    int     not null comment '색상',
+    product_id  int(11) unsigned     not null comment '상품',
+    size_id     int(11) unsigned     not null comment '크기',
+    color_id    int(11) unsigned     not null comment '색상',
     is_sold_out tinyint not null comment '품절 여부',
     stock       int     null comment '재고량',
     constraint FK_product_options_color_id_colors_Id
@@ -256,33 +336,45 @@ create table product_options
     constraint FK_product_options_size_id_sizes_Id
         foreign key (size_id) references sizes (Id)
 )
-    comment '상품옵션';
+    comment '상품옵션'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table users
+
+create table if not exists users
 (
-    Id    int          not null
+    Id    int(11) unsigned not null
         primary key,
     email varchar(320) not null comment '이메일',
     constraint FK_users_Id_accounts_Id
         foreign key (Id) references accounts (Id)
 )
-    comment '일반유저계정';
+    comment '일반유저계정'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table addresses
+
+create table if not exists addresses
 (
-    Id      int auto_increment
+    Id      int(11) unsigned auto_increment
         primary key,
-    user_id int not null comment '유저',
+    user_id int(11) unsigned not null comment '유저',
     constraint FK_addresses_user_id_users_Id
         foreign key (user_id) references users (Id)
 )
-    comment '배송주소';
+    comment '배송주소'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table address_histories
+
+create table if not exists address_histories
 (
-    Id           int auto_increment
+    Id           int(11) unsigned auto_increment
         primary key,
-    address_id   int         not null comment '주소',
+    address_id   int(11) unsigned         not null comment '주소',
     start_time   datetime    not null comment '변경 시작일',
     end_time     datetime    not null comment '변경 종료일',
     name         varchar(20) not null comment '수령인',
@@ -293,15 +385,19 @@ create table address_histories
     constraint FK_address_histories_address_id_addresses_Id
         foreign key (address_id) references addresses (Id)
 )
-    comment '배송지 히스토리';
+    comment '배송지 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table carts
+
+create table if not exists carts
 (
-    Id                int auto_increment
+    Id                int(11) unsigned auto_increment
         primary key,
-    user_id           int not null comment '유저',
-    product_id        int not null comment '상품',
-    product_option_id int not null comment '상품 옵션',
+    user_id           int(11) unsigned not null comment '유저',
+    product_id        int(11) unsigned not null comment '상품',
+    product_option_id int(11) unsigned not null comment '상품 옵션',
     constraint FK_carts_product_id_products_Id
         foreign key (product_id) references products (Id),
     constraint FK_carts_product_option_id_product_options_Id
@@ -309,13 +405,17 @@ create table carts
     constraint FK_carts_user_id_users_Id
         foreign key (user_id) references users (Id)
 )
-    comment '카트에 담긴 상품';
+    comment '카트에 담긴 상품'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table cart_histories
+
+create table if not exists cart_histories
 (
-    Id         int auto_increment
+    Id         int(11) unsigned auto_increment
         primary key,
-    cart_id    int      not null comment '카트',
+    cart_id    int(11) unsigned      not null comment '카트',
     start_time datetime not null comment '변경 시작일',
     end_time   datetime not null comment '변경 종료일',
     quantity   int      not null comment '수량',
@@ -323,25 +423,33 @@ create table cart_histories
     constraint FK_cart_histories_cart_id_carts_Id
         foreign key (cart_id) references carts (Id)
 )
-    comment '카트 히스토리';
+    comment '카트 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table orders
+
+create table if not exists orders
 (
-    Id         int auto_increment
+    Id         int(11) unsigned auto_increment
         primary key,
-    user_id    int      not null comment '유저',
+    user_id    int(11) unsigned      not null comment '유저',
     created_at datetime not null comment '주문 날짜',
     constraint FK_orders_user_id_users_Id
         foreign key (user_id) references users (Id)
 )
-    comment '주문';
+    comment '주문'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table order_histories
+
+create table if not exists order_histories
 (
-    Id                int auto_increment
+    Id                int(11) unsigned auto_increment
         primary key,
-    payment_status_id int            not null comment '결제 상태',
-    order_id          int            not null comment '주문 번호',
+    payment_status_id int(11) unsigned            not null comment '결제 상태',
+    order_id          int(11) unsigned            not null comment '주문 번호',
     start_time        datetime       not null comment '변경 시작일',
     end_time          datetime       not null comment '변경 종료일',
     total_price       decimal(10, 2) not null comment '최종 금액',
@@ -351,15 +459,19 @@ create table order_histories
     constraint FK_order_histories_payment_status_id_payment_status_Id
         foreign key (payment_status_id) references payment_status (Id)
 )
-    comment '주문 히스토리';
+    comment '주문 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table order_products
+
+create table if not exists order_products
 (
-    Id                int auto_increment
+    Id                int(11) unsigned auto_increment
         primary key,
-    order_id          int not null comment '주문 번호',
-    product_option_id int not null comment '상품 옵션',
-    product_id        int not null comment '상품',
+    order_id          int(11) unsigned not null comment '주문 번호',
+    product_option_id int(11) unsigned not null comment '상품 옵션',
+    product_id        int(11) unsigned not null comment '상품',
     constraint FK_order_products_order_id_orders_Id
         foreign key (order_id) references orders (Id),
     constraint FK_order_products_product_id_products_Id
@@ -367,14 +479,18 @@ create table order_products
     constraint FK_order_products_product_option_id_product_options_Id
         foreign key (product_option_id) references product_options (Id)
 )
-    comment '주문 상품';
+    comment '주문 상품'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table order_product_histories
+
+create table if not exists order_product_histories
 (
-    Id               int auto_increment
+    Id               int(11) unsigned auto_increment
         primary key,
-    order_status_id  int            not null comment '주문 상태',
-    order_product_id int            not null comment '주문 상품',
+    order_status_id  int(11) unsigned            not null comment '주문 상태',
+    order_product_id int(11) unsigned            not null comment '주문 상품',
     start_time       datetime       not null comment '변경 시작일',
     end_time         datetime       not null comment '변경 종료일',
     is_canceled      tinyint        not null comment '취소 여부',
@@ -385,42 +501,54 @@ create table order_product_histories
     constraint FK_order_product_histories_order_status_id_order_status_Id
         foreign key (order_status_id) references order_status (Id)
 )
-    comment '주문 상품 히스토리';
+    comment '주문 상품 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table questions
+
+create table if not exists questions
 (
-    Id         int auto_increment
+    Id         int(11) unsigned auto_increment
         primary key,
-    product_id int      not null comment '상품',
-    user_id    int      not null comment '유저',
+    product_id int(11) unsigned      not null comment '상품',
+    user_id    int(11) unsigned      not null comment '유저',
     created_at datetime not null comment '최초 작성 날짜',
     constraint FK_questions_product_id_products_Id
         foreign key (product_id) references products (Id),
     constraint FK_questions_user_id_users_Id
         foreign key (user_id) references users (Id)
 )
-    comment 'Q&A 질문';
+    comment 'Q&A 질문'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table question_answers
+
+create table if not exists question_answers
 (
-    Id          int auto_increment
+    Id          int(11) unsigned auto_increment
         primary key,
-    question_id int      not null comment 'Q&A 질문',
-    account_id  int      not null comment '최초 답변자',
+    question_id int(11) unsigned      not null comment 'Q&A 질문',
+    account_id  int(11) unsigned      not null comment '최초 답변자',
     created_at  datetime not null comment '최초 작성 날짜',
     constraint FK_question_answers_account_id_accounts_Id
         foreign key (account_id) references accounts (Id),
     constraint FK_question_answers_question_id_questions_Id
         foreign key (question_id) references questions (Id)
 )
-    comment 'Q&A 답변';
+    comment 'Q&A 답변'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table question_answer_histories
+
+create table if not exists question_answer_histories
 (
-    Id                 int auto_increment
+    Id                 int(11) unsigned auto_increment
         primary key,
-    account_id         int      not null comment '답변 수정자',
-    question_answer_id int      not null comment 'Q&A 답변',
+    account_id         int(11) unsigned      not null comment '답변 수정자',
+    question_answer_id int(11) unsigned      not null comment 'Q&A 답변',
     comment            text     not null comment '답변',
     start_time         datetime not null comment '변경 시작일',
     end_time           datetime not null comment '변경 종료일',
@@ -430,14 +558,18 @@ create table question_answer_histories
     constraint FK_question_answer_histories_question_answer_id_question_answers
         foreign key (question_answer_id) references question_answers (Id)
 )
-    comment '답변 히스토리';
+    comment '답변 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table question_histories
+
+create table if not exists question_histories
 (
-    Id                   int auto_increment
+    Id                   int(11) unsigned auto_increment
         primary key,
-    question_category_id int      not null comment 'Q&A 분류',
-    question_id          int      not null comment 'Q&A 질문',
+    question_category_id int(11) unsigned      not null comment 'Q&A 분류',
+    question_id          int(11) unsigned      not null comment 'Q&A 질문',
     start_time           datetime not null comment '변경 시작일',
     end_time             datetime not null comment '변경 종료일',
     content              text     not null comment '내용',
@@ -448,17 +580,21 @@ create table question_histories
     constraint FK_question_histories_question_id_questions_Id
         foreign key (question_id) references questions (Id)
 )
-    comment 'Q&A 히스토리';
+    comment 'Q&A 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table shipments
+
+create table if not exists shipments
 (
-    Id                 int auto_increment
+    Id                 int(11) unsigned auto_increment
         primary key,
-    order_id           int         not null comment '주문 번호',
-    order_product_id   int         not null comment '주문 상품',
-    address_id         int         not null comment '배송지 주소',
-    shipment_status_id int         not null comment '배송 상태',
-    shipment_memo_id   int         not null comment '배송 메세지',
+    order_id           int(11) unsigned         not null comment '주문 번호',
+    order_product_id   int(11) unsigned         not null comment '주문 상품',
+    address_id         int(11) unsigned         not null comment '배송지 주소',
+    shipment_status_id int(11) unsigned         not null comment '배송 상태',
+    shipment_memo_id   int(11) unsigned         not null comment '배송 메세지',
     message            varchar(20) null comment '배송메세지 직접입력',
     start_time         datetime    null comment '배송 시작',
     end_time           datetime    null comment '배송 종료',
@@ -473,25 +609,33 @@ create table shipments
     constraint FK_shipments_shipment_status_id_shipment_status_Id
         foreign key (shipment_status_id) references shipment_status (Id)
 )
-    comment '배송 정보';
+    comment '배송 정보'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table social_user
+
+create table if not exists social_user
 (
-    Id            int auto_increment
+    Id            int(11) unsigned auto_increment
         primary key,
-    user_id       int         not null comment '유저',
+    user_id       int(11) unsigned         not null comment '유저',
     name          varchar(10) not null comment '소셜 이름',
     social_number int         not null comment '소셜 회원번호',
     constraint FK_social_user_user_id_users_Id
         foreign key (user_id) references users (Id)
 )
-    comment '소셜 유저';
+    comment '소셜 유저'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table social_user_histories
+
+create table if not exists social_user_histories
 (
-    Id             int auto_increment
+    Id             int(11) unsigned auto_increment
         primary key,
-    social_user_id int         not null comment '소셜 유저',
+    social_user_id int(11) unsigned         not null comment '소셜 유저',
     start_time     datetime    not null comment '변경 시작일',
     end_time       datetime    not null comment '변경 종료일',
     is_deleted     tinyint     not null comment '삭제 여부',
@@ -499,13 +643,17 @@ create table social_user_histories
     constraint FK_social_user_histories_social_user_id_social_user_Id
         foreign key (social_user_id) references social_user (Id)
 )
-    comment '소셜 유저 히스토리';
+    comment '소셜 유저 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
 
-create table user_histories
+
+create table if not exists user_histories
 (
-    Id         int auto_increment
+    Id         int(11) unsigned auto_increment
         primary key,
-    user_id    int         not null comment '유저',
+    user_id    int(11) unsigned         not null comment '유저',
     start_time datetime    not null comment '변경 시작일',
     end_time   datetime    not null comment '변경 종료일',
     is_deleted tinyint     not null comment '삭제 여부',
@@ -513,6 +661,14 @@ create table user_histories
     constraint FK_user_histories_user_id_users_Id
         foreign key (user_id) references users (Id)
 )
-    comment '일반 유저 히스토리';
+    comment '일반 유저 히스토리'
+    engine = InnoDB
+    character set utf8
+    collate utf8_general_ci;
+
+
+
+
+
 
 
