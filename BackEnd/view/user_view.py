@@ -1,8 +1,8 @@
 from flask       import request, jsonify
 from flask.views import MethodView
 
-from BackEnd.service.user_service import TestService, UserService
-from BackEnd.connection           import connect_db
+from service.user_service import TestService, UserService
+from connection           import connect_db
 
 ###################################초기세팅############################
 class TestView(MethodView):

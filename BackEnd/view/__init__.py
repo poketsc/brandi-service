@@ -1,4 +1,4 @@
-from BackEnd.view.user_view import TestView
+from view.user_view import TestView
 
 def create_endpoints(app):
 

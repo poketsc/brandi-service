@@ -1,11 +1,12 @@
 from flask      import Flask
 from flask_cors import CORS
 
-from BackEnd.view           import create_endpoints
-from BackEnd.util.exception import CustomError
+from view           import create_endpoints
+from util.exception import CustomError
 
 def create_app():
     app = Flask(__name__)
+    app.debug = True
     CORS(app, resources={r"*": {"origins": "*"}})
 
     create_endpoints(app)
