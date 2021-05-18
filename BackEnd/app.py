@@ -6,7 +6,6 @@ from util.exception import CustomError
 
 def create_app():
     app = Flask(__name__)
-    app.debug = True
     CORS(app, resources={r"*": {"origins": "*"}})
 
     create_endpoints(app)
