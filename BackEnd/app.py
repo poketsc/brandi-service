@@ -1,8 +1,9 @@
-from flask      import Flask
+from flask      import Flask, jsonify
 from flask_cors import CORS
 
 from view           import create_endpoints
 from util.exception import CustomError
+from util.message   import UNKNOWN_ERROR
 
 def create_app():
     app = Flask(__name__)
@@ -12,8 +13,12 @@ def create_app():
 
     @app.errorhandler(CustomError)
     def handle_errors(e):
-        result = {'message' : e.message, 'status_code' : e.status_code}
     
-        return result
+        return jsonify({'message' : e.message}), e.status_code
 
+    @app.errorhandler(Exception)
+    def handle_exceptions(e):
+        
+        return jsonify({'message' : UNKNOWN_ERROR}), 500
+    
     return app
