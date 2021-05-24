@@ -3,12 +3,16 @@ from model.util_dao  import SelectNowDao
 from util.exception  import ( 
     ProductOptionExistError, ProductOptionSoldOutError,
     CartIdError, ChangeTimeError,
-    ChangeHistoryInformationError
-)
-from util.message    import ( 
+    ChangeHistoryInformationError, InsertOrderProductInformationError,
+    InsertOrderProductHistoryInformationError, InsertShipmentInformationError,
+    InsertOrderInformationError, InsertOrderHistoryInformationError )
+
+from util.message    import (
     PRODUCT_OPTION_DOES_NOT_EXIST, PRODUCT_OPTION_SOLD_OUT,
     POST_CART_ERROR, CHANGE_TIME_ERROR,
-    CHANGE_HISTORY_INFORMATION_ERROR)
+    CHANGE_HISTORY_INFORMATION_ERROR, INSERT_ORDER_PRODUCT_INFORMATION_ERROR,
+    INSERT_ORDER_PRODUCT_HISTORY_INFORMATION_ERROR, INSERT_SHIPMENT_INFORMATION_ERROR,
+    INSERT_ORDER_INFORMATION_ERROR, INSERT_ORDER_HISTORY_INFORMATION_ERROR )
 
 class CartService:
 
@@ -178,3 +182,76 @@ class OrderService:
         }
 
         return result
+    
+    def post_order(self, data, connection):
+
+        order_dao = OrderDao()
+        now_dao   = SelectNowDao()
+        cart_dao  = CartDao()
+        
+        # 외부로 부터 받은 data 복제
+        copy_data = data.copy()
+
+        carts = {
+            "cart" : data["cart"]
+        }
+
+        # cart 삭제
+        del copy_data["cart"]
+        
+        # 현재 시점 선언
+        now = now_dao.select_now(connection)
+            
+        # copy_data 에 현재 시점 추가
+        copy_data['now'] = now
+
+        # 주문 추가
+        order_id = order_dao.insert_order_information(copy_data, connection)
+
+        # 주문 추가 실패 에러메세지
+        if not order_id:
+            raise InsertOrderInformationError(INSERT_ORDER_INFORMATION_ERROR, 400)
+
+        copy_data['order_id'] = order_id
+
+        order_history_id = order_dao.insert_order_history_information(copy_data, connection)
+
+        # 주문 히스토리 추가 실패 에러메세지
+        if not order_history_id:
+            raise InsertOrderHistoryInformationError(INSERT_ORDER_HISTORY_INFORMATION_ERROR, 400)
+
+        # cart의 갯수만큼 for문을 돌려서 각각 데이터 입력
+        for cart in carts['cart']:
+            cart['now'] = now
+            cart['user_id'] = data['user_id']
+            cart['order_id'] = order_id           
+            order_product_id = order_dao.insert_order_product_information(cart, connection)
+
+            if not order_product_id:
+                raise InsertOrderProductInformationError(INSERT_ORDER_PRODUCT_INFORMATION_ERROR, 400)
+        
+            cart['order_product_id'] = order_product_id
+
+            # 주문 상품 히스토리 정보 입력
+            order_product_history = order_dao.insert_order_product_history_information(cart, connection)
+
+            if not order_product_history:
+                raise InsertOrderProductHistoryInformationError(INSERT_ORDER_PRODUCT_HISTORY_INFORMATION_ERROR, 400)
+            
+            # copy_data에 order_product_id 담기
+            copy_data['order_product_id'] = order_product_id
+
+            # 배송 정보 입력
+            result = order_dao.insert_shipment_information(copy_data, connection)
+
+            if not result:
+                raise InsertShipmentInformationError(INSERT_SHIPMENT_INFORMATION_ERROR, 400)
+            
+            # 주문 완료 후 cart_histories에서 cart delete
+            change_time = cart_dao.update_cart_history_end_time(cart, connection)
+
+            if not change_time:
+                raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
+
+        # 잘 실행 됬으면 1 리턴
+        return change_time

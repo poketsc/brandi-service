@@ -14,3 +14,25 @@ class ChangeTimeError(CustomError):
     pass
 class ChangeHistoryInformationError(CustomError):
     pass
+class InsertOrderProductInformationError(CustomError):
+    pass
+class InsertOrderProductHistoryInformationError(CustomError):
+    pass
+class InsertShipmentInformationError(CustomError):
+    pass
+class InsertOrderInformationError(CustomError):
+    pass
+class InsertOrderHistoryInformationError(CustomError):
+    pass
+class CartIdTypeError(CustomError):
+    pass
+class ProductIdTypeError(CustomError):
+    pass
+class ProductOptionIdTypeError(CustomError):
+    pass
+class PriceTypeError(CustomError):
+    pass
+class DiscountedPriceTypeError(CustomError):
+    pass
+class QuantityTypeError(CustomError):
+    pass

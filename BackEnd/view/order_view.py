@@ -14,6 +14,16 @@ from flask_request_validator import (
     MaxLength,
     validate_params
 )
+from util.exception import (
+    CartIdTypeError, ProductIdTypeError,
+    ProductOptionIdTypeError, PriceTypeError,
+    DiscountedPriceTypeError, QuantityTypeError )
+
+from util.message import (
+    CART_ID_TYPE_ERROR, PRODUCT_ID_TYPE_ERROR,
+    PRODUCT_OPTION_ID_TYPE_ERROR, PRICE_TYPE_ERROR,
+    DISCOUNTED_PRICE_TYPE_ERROR, QUANTITY_TYPE_ERROR
+)
 
 class CartView(MethodView):
 
@@ -162,6 +172,65 @@ class OrderView(MethodView):
             connection.rollback()       
             raise e
             
+        finally:
+            if connection is not None:
+                connection.close()
+    
+    # 데코레이터 선언예정
+    @validate_params(
+        Param('user_id', JSON, int, required=True), # 테스트용 user_id
+        Param('cart', JSON, str, required=True), 
+        Param('orderer_name', JSON, str, required=True),
+        Param('orderer_phone_number', JSON, str, required=True),
+        Param('orderer_email', JSON, str, required=True),
+        Param('address_id', JSON, int, required=True),
+        Param('shipment_memo_id', JSON, int, required=True),
+        Param('message', JSON, str, required=False),
+        Param('total_price', JSON, int, required=True)
+    )
+    def post(*args):
+
+        order_service = OrderService()
+
+        connection = None
+        try:
+
+            data = request.json
+
+            for i in data['cart']:
+                if type(i['cart_id']) != int:
+                    raise CartIdTypeError(CART_ID_TYPE_ERROR, 400)
+                
+                if type(i['product_id']) != int:
+                    raise ProductIdTypeError(PRODUCT_ID_TYPE_ERROR, 400)
+                
+                if type(i['product_option_id']) != int:
+                    raise ProductOptionIdTypeError(PRODUCT_OPTION_ID_TYPE_ERROR, 400)
+                
+                if type(i['price']) != int:
+                    raise PriceTypeError(PRICE_TYPE_ERROR, 400)
+                
+                if type(i['discounted_price']) != int and i["discounted_price"] != None:
+                    raise DiscountedPriceTypeError(DISCOUNTED_PRICE_TYPE_ERROR, 400)
+                
+                if type(i['quantity']) != int:
+                    raise QuantityTypeError(QUANTITY_TYPE_ERROR, 400)
+
+            connection = connect_db()
+
+            # data['user_id'] = request.user.id  (데코레이터 사용시 data에 user_id 추가용) 
+            
+            result = order_service.post_order(data, connection)
+            
+            connection.commit()
+            
+            return jsonify({"data" : result, "message": "qweasdfkljhl -> util.message에서 가져올 예정"})
+
+        except Exception as e:
+            if connection is not None:
+                connection.rollback()       
+                raise e
+        
         finally:
             if connection is not None:
                 connection.close()
