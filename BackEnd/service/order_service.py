@@ -1,4 +1,4 @@
-from model.order_dao import CartDao
+from model.order_dao import CartDao, OrderDao
 from model.util_dao  import SelectNowDao
 from util.exception  import ( 
     ProductOptionExistError, ProductOptionSoldOutError,
@@ -159,3 +159,22 @@ class CartService:
             raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
         
         return change_time
+    
+class OrderService:
+
+    def get_order_information(self, data, connection):
+
+        order_dao = OrderDao()
+
+        # 기본 배송지 정보 가져오기
+        shipment_information = order_dao.get_defaulted_shipment_information(data, connection)
+
+        # 배송지 메모 리스트 가져오기
+        shipment_memo_information = order_dao.get_shipment_memo_information(connection)
+
+        result = {
+            "shipment_information" : shipment_information,
+            "shipment_memo_information" : shipment_memo_information
+        }
+
+        return result
