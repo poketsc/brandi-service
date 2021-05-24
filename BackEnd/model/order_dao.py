@@ -218,3 +218,80 @@ class CartDao:
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
             result = cursor.execute(query, data)
+
+class OrderDao:
+
+    def get_defaulted_shipment_information(self, data, connection):
+
+        query = """
+            SELECT 
+                address_histories.id,
+                address_id,
+                name,
+                phone_number,
+                address
+
+            FROM  address_histories
+
+            INNER JOIN addresses
+            ON addresses.id = address_histories.address_id
+
+            WHERE user_id = 4
+            AND is_defaulted = true;
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, data)
+
+            result = cursor.fetchone()
+
+            return result
+    
+    def get_all_shipment_information(self, data, connection):
+
+        query = """
+            SELECT
+                address_id,
+                start_time,
+                end_time,
+                name,
+                phone_number,
+                is_deleted,
+                is_defaulted,
+                address
+
+            FROM
+                address_histories as ah
+
+            INNER JOIN addresses as ad
+            ON ad.id = ah.address_id
+            
+            WHERE ad.user_id = %(user_id)s
+            AND ah.is_deleted = false
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, data)
+
+            result = cursor.fetchall()
+
+            return result
+    
+    def get_shipment_memo_information(self, connection):
+
+        query = """
+            SELECT 
+                id,
+                content
+            FROM shipment_memo
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query)
+
+            result = cursor.fetchall()
+
+            return result

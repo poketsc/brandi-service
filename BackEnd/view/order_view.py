@@ -1,7 +1,7 @@
 from flask       import request, jsonify
 from flask.views import MethodView
 
-from service.order_service   import CartService
+from service.order_service   import CartService, OrderService
 from connection              import connect_db
 from flask_request_validator import (
     GET,
@@ -123,6 +123,36 @@ class CartView(MethodView):
             data = request.json
 
             result = cart_service.delete_cart_product(data, connection)
+
+            connection.commit()
+
+            return jsonify({"data" : result})
+
+        except Exception as e:
+            connection.rollback()       
+            raise e
+            
+        finally:
+            if connection is not None:
+                connection.close()
+
+class OrderView(MethodView):
+
+    # 데코레이터 선언 예정
+    def get(self):
+        order_service = OrderService()
+
+        connection = None
+        try:
+            connection = connect_db()
+
+            # user = request.user (데코레이터 사용시 user 선언 방법)
+            
+            data = {
+                'user_id' : 4
+            }
+
+            result = order_service.get_order_information(data, connection)
 
             connection.commit()
 
