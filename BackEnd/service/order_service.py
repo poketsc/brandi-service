@@ -75,3 +75,43 @@ class CartService:
         result = cart_dao.post_history_cart(data, connection)
 
         return result
+    
+    def get_cart(self, data, connection):
+
+        cart_dao = CartDao()
+
+        results = cart_dao.get_cart_information(data, connection)
+
+        # 할인된가격 (dao에서 가져올수 없어서 service에서 처리해서 results에 추가)
+
+        cart_informations = [{
+            "color"             : result["color"],
+            "discount_rate"     : result["discount_rate"],
+            "korean_name"       : result["korean_name"],
+            "name"              : result["name"],
+            "price"             : result["price"],
+            "quantity"          : result["quantity"],
+            "size"              : result["size"],
+            "image_url"         : result["image_url"],
+            "color_id"          : result["color_id"],
+            "size_id"           : result["size_id"],
+            "cart_id"           : result["cart_id"],
+            "product_option_id" : result["product_option_id"],
+            "product_id"        : result["product_id"],
+            "discounted_price"  : int((100 - result["discount_rate"]) * result["price"]) * 0.01 if result["discount_rate"] else None
+        } for result in results]
+
+        # 총 상품금액, 할인예정 금액, 총 결제 금액 
+        total_original_price       = sum([cart_information["price"] for cart_information in cart_informations])
+        estimated_discounted_price = sum([cart_information["price"] * cart_information["discount_rate"] if cart_information["discount_rate"] else None for cart_information in cart_informations])
+        total_price                = total_original_price - estimated_discounted_price
+
+        # 장바구니(카트)에 필요한 모든 정보 합치기
+        cart_information_results = {
+            "product_informations"       : cart_informations,
+            "total_original_price"       : total_original_price,
+            "estimated_discounted_price" : estimated_discounted_price,
+            "total_price"                : total_price
+        }
+
+        return cart_information_results

@@ -218,5 +218,3 @@ class CartDao:
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
             result = cursor.execute(query, data)
-
-            return result

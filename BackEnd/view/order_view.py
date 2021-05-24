@@ -47,3 +47,30 @@ class CartView(MethodView):
         finally:
             if connection is not None:
                 connection.close()
+
+    # 데코레이터 선언 예정
+    def get(self):
+        cart_service = CartService()
+
+        connection = None
+        try:
+            connection = connect_db()
+
+            # user = request.user (데코레이터 사용시 user 선언 방법)
+
+            # 데코레이터가 없어서 user_id를 하드코딩으로 받는방법(테스트용)
+            data = {
+                'user_id' : 4
+            }
+
+            result = cart_service.get_cart(data,connection)
+
+            return jsonify({"data" : result})
+
+        except Exception as e:
+            connection.rollback()       
+            raise e
+
+        finally:
+            if connection is not None:
+                connection.close()
