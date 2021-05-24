@@ -1,27 +1,26 @@
 import pymysql
 
-#################################초기세팅#############################
-class TestDao:
-    
-    def post_test(self, data, connection):
+from util.const import USER_ACCOUNT_TYPE
 
-        insert_data = """INSERT INTO sizes(size) 
-                        VALUES (%(size)s)"""
-
-        with connection.cursor() as cursor:
-
-            cursor.execute(insert_data, data)
-
-            return cursor.lastrowid
-
-class UserDao:
-    def get_test(self, connection):
-        sql = "SELECT * FROM users"
+class SignInDao:
+    def get_user_info(self, connection, data):
+        query = f"""
+            SELECT 
+                a.id,
+                a.account_type_id,
+                a.nickname,
+                uh.password
+            FROM accounts AS a
+            INNER JOIN users AS u
+                ON a.id = u.id
+            INNER JOIN user_histories AS uh
+                ON u.id = uh.user_id
+            WHERE a.nickname = %(nickname)s
+                AND a.account_type_id = {USER_ACCOUNT_TYPE}
+                AND uh.is_deleted = 0
+                """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
-            cursor.execute(sql)
+            cursor.execute(query, data)
 
-            test_list = cursor.fetchall()
-            
-            return test_list
-#################################초기세팅#############################
+            return cursor.fetchall()
