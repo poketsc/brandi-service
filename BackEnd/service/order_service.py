@@ -140,3 +140,22 @@ class CartService:
             raise ChangeHistoryInformationError(CHANGE_HISTORY_INFORMATION_ERROR, 400)
         
         return change_history_information
+    
+    def delete_cart_product(self, data, connection):
+
+        cart_dao = CartDao()
+        now_dao = SelectNowDao()
+
+        # 현재 시점 선언
+        now = now_dao.select_now(connection)
+            
+        # data 에 현재 시점 추가
+        data['now'] = now
+
+        # 선분이력 시간 끊기
+        change_time = cart_dao.update_cart_history_end_time(data, connection)
+
+        if not change_time:
+            raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
+        
+        return change_time
