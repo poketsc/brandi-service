@@ -115,3 +115,28 @@ class CartService:
         }
 
         return cart_information_results
+    
+    def change_quantity_cart(self, data, connection):
+
+        cart_dao = CartDao()
+        now_dao = SelectNowDao()
+
+        # 현재 시점 선언
+        now = now_dao.select_now(connection)
+            
+        # data 에 현재 시점 추가
+        data['now'] = now
+
+        # 선분이력 시간 끊기
+        change_time = cart_dao.update_cart_history_end_time(data, connection)
+
+        if not change_time:
+            raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
+        
+        # 선분이력 복사, 원하는 형태로 데이터 수정
+        change_history_information = cart_dao.update_cart_history_information(data, connection)
+
+        if not change_history_information:
+            raise ChangeHistoryInformationError(CHANGE_HISTORY_INFORMATION_ERROR, 400)
+        
+        return change_history_information

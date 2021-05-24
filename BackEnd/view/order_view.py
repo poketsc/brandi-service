@@ -74,3 +74,34 @@ class CartView(MethodView):
         finally:
             if connection is not None:
                 connection.close()
+    
+    # 데코레이터 선언 예정
+    @validate_params(
+        Param('user_id', JSON, int, required=True), # 테스트용 user_id
+        Param('product_option_id', JSON, int, required=True),
+        Param('quantity', JSON, int, required=True),
+    )
+    def patch(*args):
+        cart_service = CartService()
+
+        connection = None
+        try:
+            connection = connect_db()
+
+            # user = request.user (데코레이터 사용시 user 선언 방법)
+            
+            data = request.json
+
+            result = cart_service.change_quantity_cart(data, connection)
+
+            connection.commit()
+
+            return jsonify({"data" : result})
+
+        except Exception as e:
+            connection.rollback()       
+            raise e
+            
+        finally:
+            if connection is not None:
+                connection.close()
