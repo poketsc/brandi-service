@@ -278,7 +278,7 @@ class OrderDao:
             result = cursor.fetchall()
 
             return result
-    
+            
     def get_shipment_memo_information(self, connection):
 
         query = """
@@ -293,5 +293,164 @@ class OrderDao:
             cursor.execute(query)
 
             result = cursor.fetchall()
+
+            return result
+    
+    def get_address_id(self, data, connection):
+
+        query = """
+            SELECT
+                id
+            
+            FROM
+                addresses
+            
+            WHERE
+                user_id = %(user_id)s;
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, data)
+
+            result = cursor.fetchone()
+
+            return result
+
+    def insert_order_information(self, data, connection):
+
+        query = """
+            INSERT INTO orders (
+                user_id,
+                created_at
+                )
+            VALUES (
+                %(user_id)s,
+                %(now)s
+            )
+        """
+
+        with connection.cursor() as cursor:
+
+            cursor.execute(query, data)
+
+            result = cursor.lastrowid
+
+            return result
+    
+    def insert_order_history_information(self, data, connection):
+        data['END_DATE'] = END_DATE
+        
+        query = """
+            INSERT INTO order_histories (
+                payment_status_id,
+                order_id,
+                start_time,
+                end_time,
+                total_price,
+                is_canceled,
+                orderer_name,
+                orderer_phone_number,
+                orderer_email
+            )
+            VALUES (
+                2,
+                %(order_id)s,
+                %(now)s,
+                %(END_DATE)s,
+                %(total_price)s,
+                false,
+                %(orderer_name)s,
+                %(orderer_phone_number)s,
+                %(orderer_email)s
+            )
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, data)
+
+            result = cursor.lastrowid
+
+            return result
+
+    
+    def insert_order_product_information(self, data, connection):
+
+        query = """
+            INSERT INTO order_products (
+                order_id,
+                product_option_id,
+                product_id
+            )
+            VALUES (
+                %(order_id)s,
+                %(product_option_id)s,
+                %(product_id)s
+            )
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, data)
+
+            result = cursor.lastrowid
+
+            return result
+
+    def insert_order_product_history_information(self, data, connection):
+        data['END_DATE'] = END_DATE
+
+        query = """
+            INSERT INTO order_product_histories (
+                order_status_id,
+                order_product_id,
+                start_time,
+                end_time,
+                is_canceled,
+                price,
+                quantity )
+            VALUES (
+                1,
+                %(order_product_id)s,
+                %(now)s,
+                %(END_DATE)s,
+                false,
+                %(price)s,
+                %(quantity)s
+            )
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            result = cursor.execute(query, data)
+
+            return result
+
+    def insert_shipment_information(self, data, connection):
+        data['END_DATE'] = END_DATE
+
+        query = """
+            INSERT INTO shipments (
+                order_id,
+                order_product_id,
+                address_id,
+                shipment_status_id,
+                shipment_memo_id,
+                message
+                )
+            VALUES (
+                %(order_id)s,
+                %(order_product_id)s,
+                %(address_id)s,
+                1,
+                %(shipment_memo_id)s,
+                %(message)s
+            )
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+            
+            result = cursor.execute(query, data)
 
             return result
