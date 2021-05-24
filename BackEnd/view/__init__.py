@@ -7,5 +7,4 @@ def create_endpoints(app):
     app.add_url_rule('/test', view_func=TestView.as_view('test_view'))
 ######################초기세팅########################
 
-    app.add_url_rule('/carts', view_func=CartView.as_view('cart_view'))
-    app.add_url_rule('/getcarts', view_func=CartView.as_view('get_cart'))
+    app.add_url_rule('/cart', view_func=CartView.as_view('cart_view'))
