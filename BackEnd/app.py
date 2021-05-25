@@ -7,11 +7,11 @@ from flask      import Flask, jsonify
 from flask_cors import CORS
 from flask.json                         import JSONEncoder
 from flask_request_validator.exceptions import InvalidRequestError
+from flask_request_validator.error_formatter import demo_error_formatter
 
 from view           import create_endpoints
-
 from util.exception import CustomError
-from util.message   import UNKNOWN_ERROR, INVALID_REQUEST
+from util.message   import UNKNOWN_ERROR
 
 
 class CustomJSONEncoder(JSONEncoder):
@@ -37,7 +37,7 @@ def create_app():
 
     @app.errorhandler(InvalidRequestError)
     def handle_data_errors(e):
-        return jsonify({"message" : INVALID_REQUEST}), 400
+        return jsonify(demo_error_formatter(e)), 400
 
     @app.errorhandler(Exception)
     def handle_exceptions(e):

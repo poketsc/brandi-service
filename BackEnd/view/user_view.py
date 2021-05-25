@@ -1,49 +1,42 @@
-from flask       import request, jsonify
-from flask.views import MethodView
+from flask                   import request, jsonify
+from flask.views             import MethodView
+from flask_request_validator import validate_params, Param, JSON
 
-from service.user_service import TestService, UserService
+from service.user_service import SignInService
 from connection           import connect_db
 
-###################################초기세팅############################
-class TestView(MethodView):
-
-    def post(self):
-        test_service = TestService()
-
+class SignInView(MethodView):
+    
+    @validate_params(
+    Param("nickname", JSON, str, required=True),
+    Param("password", JSON, str, required=True)
+    )
+    def post(*args):
+        """
+        클라이언트로부터 nickname과 password를 받는다.
+        nickname으로 데이터베이스에서 유저 정보 가져오기.
+        아이디가 존재하는지 확인하고 에러 처리.
+        데이터베이스 비밀번호와 일치하지 않으면 에러 처리.
+        둘 다 일치하면 토큰 발급해서 리턴.
+        """
+        sign_in_service = SignInService()
+        
         connection = None
+
         try:
+            data       = request.json
             connection = connect_db()
+
+            # nickname으로 데이터베이스에서 user 정보 가져오기.
+            result = sign_in_service.post_sign_in(connection, data)
             
-            data = request.json
-            
-            results = test_service.test_service(data, connection)
-            
-            connection.commit()
-            
-            return jsonify({'results' : results})
+            return jsonify(result), 200
         
         except Exception as e:
-            connection.rollback()
+            if connection is not None:
+                connection.rollback()
+            raise e
         
-            raise e 
-            
         finally:
             if connection is not None:
                 connection.close()
-    
-    def get(self):
-        user_service = UserService()
-        connection = None
-        try:
-            connection = connect_db()
-            
-            results = user_service.user_service(connection)
-            
-            connection.commit()
-            
-            return jsonify({'results' : results})
-            
-        finally:
-            if connection is not None:
-                connection.close()
-###################################초기세팅############################
