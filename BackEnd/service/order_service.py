@@ -1,18 +1,23 @@
-from model.order_dao import CartDao, OrderDao
+from model.order_dao import CartDao, OrderDao, ShipmentDao
 from model.util_dao  import SelectNowDao
 from util.exception  import ( 
     ProductOptionExistError, ProductOptionSoldOutError,
     CartIdError, ChangeTimeError,
     ChangeHistoryInformationError, InsertOrderProductInformationError,
     InsertOrderProductHistoryInformationError, InsertShipmentInformationError,
-    InsertOrderInformationError, InsertOrderHistoryInformationError )
-
-from util.message    import (
+    InsertOrderInformationError, InsertOrderHistoryInformationError,
+    UpdateAddressHistoryEndTimeError, InsertAddressHistoryInformationError,
+    InsertAddressInformationError, GetAddressIdError,
+    MaximumShipmentInformationError)
+from util.message    import ( 
     PRODUCT_OPTION_DOES_NOT_EXIST, PRODUCT_OPTION_SOLD_OUT,
     POST_CART_ERROR, CHANGE_TIME_ERROR,
     CHANGE_HISTORY_INFORMATION_ERROR, INSERT_ORDER_PRODUCT_INFORMATION_ERROR,
     INSERT_ORDER_PRODUCT_HISTORY_INFORMATION_ERROR, INSERT_SHIPMENT_INFORMATION_ERROR,
-    INSERT_ORDER_INFORMATION_ERROR, INSERT_ORDER_HISTORY_INFORMATION_ERROR )
+    INSERT_ORDER_INFORMATION_ERROR, INSERT_ORDER_HISTORY_INFORMATION_ERROR,
+    UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, INSERT_ADDRESS_HISTORY_INFORMATION_ERROR,
+    INSERT_ADDRESS_INFORMATION_ERROR, GET_ADDRESS_ID_ERROR,
+    MAXIMUM_SHIPMENT_INFORMATION_ERROR )
 
 class CartService:
 
@@ -255,3 +260,76 @@ class OrderService:
 
         # 잘 실행 됬으면 1 리턴
         return change_time
+
+class ShipmentService:
+    
+    def insert_address_information(self, data, connection):
+
+        shipment_dao = ShipmentDao()
+        order_dao    = OrderDao()
+        now_dao      = SelectNowDao()
+
+        # 현재 시점 선언
+        now = now_dao.select_now(connection)
+            
+        # data 에 현재 시점 추가
+        data['now'] = now
+
+        all_shipment_information = shipment_dao.get_all_shipment_information(data, connection)
+
+        # 배송지 주소 정보가 5개 일때
+        if len(all_shipment_information) == 5:
+            raise MaximumShipmentInformationError(MAXIMUM_SHIPMENT_INFORMATION_ERROR, 400)
+
+        # 배송지 주소 정보가 없을때
+        if len(all_shipment_information) == 0:
+            address_id = shipment_dao.insert_address_information(data, connection)
+
+            if not address_id:
+                raise InsertAddressInformationError(INSERT_ADDRESS_INFORMATION_ERROR, 400)
+            
+            data['address_id'] = address_id
+
+            insert_address = shipment_dao.insert_address_history_information(data, connection)
+
+            if not insert_address:
+                raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+            
+            return insert_address
+        
+        # 배송지 주소 정보가 5개 미만이고 기본 배송지가 아닌 정보 추가 할때
+        if data['is_defaulted'] == False and len(all_shipment_information) < 5:
+            address_id = order_dao.get_address_id(data, connection)
+
+            if not address_id:
+                raise GetAddressIdError(GET_ADDRESS_ID_ERROR, 400)
+            
+            data['address_id'] = address_id
+
+            insert_address = shipment_dao.insert_address_history_information(data, connection)
+
+            if not insert_address:
+                raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+
+            return insert_address
+        
+        # 배송지 주소 정보가 5개 미만이고 새로운 기본 배송지 정보 추가 할때
+        if data['is_defaulted'] == True and len(all_shipment_information) < 5:
+            address_id = order_dao.get_address_id(data, connection)
+
+            if not address_id:
+                raise GetAddressIdError(GET_ADDRESS_ID_ERROR, 400)
+            
+            data['address_id'] = address_id
+
+            update_address = shipment_dao.update_address_history_end_time(data, connection)
+
+            if not update_address:
+                raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
+            
+            insert_address = shipment_dao.insert_address_history_information(data, connection)
+
+            if not insert_address:
+                raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+            
+            return insert_address

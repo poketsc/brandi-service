@@ -1,7 +1,7 @@
 from flask       import request, jsonify
 from flask.views import MethodView
 
-from service.order_service   import CartService, OrderService
+from service.order_service   import CartService, OrderService, ShipmentService
 from connection              import connect_db
 from flask_request_validator import (
     GET,
@@ -224,7 +224,47 @@ class OrderView(MethodView):
             
             connection.commit()
             
-            return jsonify({"data" : result, "message": "qweasdfkljhl -> util.message에서 가져올 예정"})
+            return jsonify({"data" : result})
+
+        except Exception as e:
+            if connection is not None:
+                connection.rollback()       
+                raise e
+        
+        finally:
+            if connection is not None:
+                connection.close()
+
+class ShipmentView(MethodView):
+
+    #데코레이터 선언예정
+    @validate_params(
+        Param('user_id', JSON, int, required=True), # 테스트용 user_id
+        Param('name', JSON, str, required=True), 
+        Param('phone_number', JSON, str, required=True),
+        Param('is_defaulted', JSON, bool, required=True),
+        Param('address', JSON, str, required=True)
+    )
+    def post(*args):
+
+        shipment_service = ShipmentService()
+
+        connection = None
+        try:
+
+            data = request.json
+
+            connection = connect_db()
+
+            # data['user_id'] = request.user.id  (데코레이터 사용시 data에 user_id 추가용)
+            
+            result = shipment_service.insert_address_information(data, connection)
+
+            print('================================')
+            
+            connection.commit()
+            
+            return jsonify({"data" : result})
 
         except Exception as e:
             if connection is not None:
