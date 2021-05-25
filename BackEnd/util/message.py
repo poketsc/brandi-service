@@ -21,6 +21,8 @@ PRODUCT_OPTION_ID_TYPE_ERROR = 'product_option_id 가 int 타입이 아닙니다
 PRICE_TYPE_ERROR = 'price 가 int 타입이 아닙니다.'
 DISCOUNTED_PRICE_TYPE_ERROR = 'discounted_price 가 int 또는 Nonetype이 아닙니다.'
 QUANTITY_TYPE_ERROR = 'quantity 타입이 int 가 아닙니다.'
+
+# shipment
 UPDATE_ADDRESS_HISTORY_END_TIME_ERROR = 'address_history 의 end_time 수정에 실패 했습니다.'
 INSERT_ADDRESS_HISTORY_INFORMATION_ERROR = 'address_history 의 정보 수정에 실패 했습니다.'
 INSERT_ADDRESS_INFORMATION_ERROR = 'address 정보 입력에 실패 했습니다.'
