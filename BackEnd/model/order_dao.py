@@ -430,8 +430,9 @@ class ShipmentDao:
 
     def get_all_shipment_information(self, data, connection):
 
-        query = """
+        query = f"""
             SELECT
+                ah.id
                 address_id,
                 start_time,
                 end_time,
@@ -449,6 +450,7 @@ class ShipmentDao:
             
             WHERE ad.user_id = %(user_id)s
             AND ah.is_deleted = false
+            AND ah.end_time = {END_DATE}
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
@@ -487,12 +489,10 @@ class ShipmentDao:
             
             SET
                 end_time = %(now)s,
-                is_defaulted = false
+                is_defaulted = %(is_defaulted)s
             
             WHERE
-                address_id = %(address_id)s
-                AND is_defaulted = true
-                AND is_deleted = false
+                id = %(id)s
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
@@ -501,10 +501,10 @@ class ShipmentDao:
 
             return result
     
-    # 주소 추가
+    # 주소 히스토리 추가
     def insert_address_history_information(self, data, connection):
         data['END_DATE'] = END_DATE
-
+        
         query = """
             INSERT INTO
                 address_histories (

@@ -272,3 +272,41 @@ class ShipmentView(MethodView):
         finally:
             if connection is not None:
                 connection.close()
+
+    #데코레이터 선언예정
+    @validate_params(
+        Param('user_id', JSON, int, required=True), # 테스트용 user_id
+        Param('id', JSON, int, required=True),
+        Param('address_id', JSON, int, required=True),
+        Param('name', JSON, str, required=True), 
+        Param('phone_number', JSON, str, required=True),
+        Param('is_defaulted', JSON, bool, required=True),
+        Param('address', JSON, str, required=True)
+    )
+    def patch(*args):
+
+        shipment_service = ShipmentService()
+
+        connection = None
+        try:
+
+            data = request.json
+
+            connection = connect_db()
+
+            # data['user_id'] = request.user.id  (데코레이터 사용시 data에 user_id 추가용)
+            
+            result = shipment_service.update_address_information(data, connection)
+            
+            connection.commit()
+            
+            return jsonify({"data" : result})
+
+        except Exception as e:
+            if connection is not None:
+                connection.rollback()       
+                raise e
+        
+        finally:
+            if connection is not None:
+                connection.close()
