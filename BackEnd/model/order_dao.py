@@ -219,13 +219,15 @@ class CartDao:
 
             result = cursor.execute(query, data)
 
+            return result
+
 class OrderDao:
 
     def get_defaulted_true_shipment_information(self, data, connection):
 
         query = """
             SELECT 
-                address_histories.id,
+                ah.id,
                 address_id,
                 name,
                 phone_number,
@@ -283,8 +285,6 @@ class OrderDao:
             cursor.execute(query, data)
 
             result = cursor.fetchall()
-
-            result = result['id']
 
             return result
             
