@@ -39,16 +39,9 @@ def create_app():
     def handle_data_errors(e):
         return jsonify({"message" : INVALID_REQUEST}), 400
 
-<<<<<<< HEAD
     @app.errorhandler(Exception)
     def handle_exceptions(e):
         traceback.print_exc()
         return jsonify({'message' : UNKNOWN_ERROR}), 500
-=======
-    # @app.errorhandler(Exception)
-    # def handle_exceptions(e):
-        
-    #     return jsonify({'message' : UNKNOWN_ERROR}), 500
->>>>>>> 3e29af9... Add: 배송지 추가 기능 구현
     
     return app
