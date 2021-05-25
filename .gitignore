@@ -301,3 +301,4 @@ Temporary Items
 config.py
 .DS_Store
 .vscode
+**/node_modules

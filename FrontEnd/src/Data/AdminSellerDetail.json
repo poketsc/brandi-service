@@ -1,0 +1,29 @@
+{
+  "result": {
+    "address": "서울시 도봉구",
+    "background_image_url": "https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__340.jpg",
+    "customer_center": "브랜디 고객센터",
+    "customer_center_phone": "01012331233",
+    "customer_close_time": "18:00:00",
+    "customer_open_time": "9:00:00",
+    "delivery_info": "당일 배송 ",
+    "detail_address": "1102호",
+    "english_brand_name": "bbbb",
+    "exchange_refund_info": "교환, 환불은 수령 후 7일까지만 가능",
+    "korean_brand_name": "나나",
+    "manager_info_list": [
+      {
+        "manager_email": "abc12344@naver.com",
+        "manager_name": "bbb",
+        "manager_phone": "456543"
+      }
+    ],
+    "profile_image_url": "https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__340.jpg",
+    "seller_description": "후후후훟",
+    "seller_detail_description": "후후후후후",
+    "seller_identification": "sssss",
+    "seller_status_type": "입점거절",
+    "zip_code": 6089
+  },
+  "status_code": 200
+}

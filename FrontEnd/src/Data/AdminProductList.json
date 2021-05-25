@@ -1,0 +1,54 @@
+{
+  "result": {
+    "basic_info": {
+      "category": "아우터 ",
+      "detail_description": "<html>",
+      "displayed": 1,
+      "images": [
+        {
+          "image_url": "https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__340.jpg",
+          "is_represent": 0
+        },
+        {
+          "image_url": "https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__340.jpg",
+          "is_represent": 1
+        }
+      ],
+      "product_code": "111",
+      "product_info_notice": {
+        "date_of_manufacture": "상품상세 참조",
+        "manufacturer": "상품상세 참조",
+        "origin": "상품상세 참조"
+      },
+      "property": "트랜드 ",
+      "selling": 0,
+      "simple_description": "",
+      "sub_category": "자켓 ",
+      "title": "가옷"
+    },
+    "option_info": [
+      {
+        "color": "블랙",
+        "option_id": 1,
+        "size": "Free",
+        "stock": 200
+      },
+      {
+        "color": "레드",
+        "option_id": 2,
+        "size": "28",
+        "stock": 200
+      }
+    ],
+    "selling_info": {
+      "discount_end_date": "9999-12-31 11:59:00",
+      "discount_price": 8500,
+      "discount_rate": 0.15,
+      "discount_start_date": "1111-01-01 12:00:00",
+      "max_amount": 20,
+      "min_amount": 1,
+      "price": 10000
+    }
+  },
+  "status_code": 200
+}
