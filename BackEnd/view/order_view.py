@@ -259,8 +259,6 @@ class ShipmentView(MethodView):
             # data['user_id'] = request.user.id  (데코레이터 사용시 data에 user_id 추가용)
             
             result = shipment_service.insert_address_information(data, connection)
-
-            print('================================')
             
             connection.commit()
             

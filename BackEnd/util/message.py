@@ -24,7 +24,7 @@ QUANTITY_TYPE_ERROR = 'quantity 타입이 int 가 아닙니다.'
 
 # shipment
 UPDATE_ADDRESS_HISTORY_END_TIME_ERROR = 'address_history 의 end_time 수정에 실패 했습니다.'
-INSERT_ADDRESS_HISTORY_INFORMATION_ERROR = 'address_history 의 정보 수정에 실패 했습니다.'
+INSERT_ADDRESS_HISTORY_INFORMATION_ERROR = 'address_history 의 정보 입력에 실패 했습니다.'
 INSERT_ADDRESS_INFORMATION_ERROR = 'address 정보 입력에 실패 했습니다.'
 GET_ADDRESS_ID_ERROR = 'address_id 를 가져오는데 실패 했습니다.'
-MAXIMUM_SHIPMENT_INFORMATION_ERROR = '더이상 배송지 주소를 추가 할수 없습니다.'
+MAXIMUM_ADDRESS_ID_ERROR = '더이상 배송지 주소를 추가 할수 없습니다.'
