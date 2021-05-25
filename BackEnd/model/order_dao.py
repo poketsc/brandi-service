@@ -221,7 +221,7 @@ class CartDao:
 
 class OrderDao:
 
-    def get_defaulted_shipment_information(self, data, connection):
+    def get_defaulted_true_shipment_information(self, data, connection):
 
         query = """
             SELECT 
@@ -231,12 +231,12 @@ class OrderDao:
                 phone_number,
                 address
 
-            FROM  address_histories
+            FROM  address_histories AS ah
 
-            INNER JOIN addresses
-            ON addresses.id = address_histories.address_id
+            INNER JOIN addresses AS ad
+            ON ad.id = ah.address_id
 
-            WHERE user_id = 4
+            WHERE user_id = %(user_id)s
             AND is_defaulted = true;
         """
 
@@ -282,9 +282,37 @@ class OrderDao:
 
             cursor.execute(query, data)
 
-            result = cursor.fetchone()
+            result = cursor.fetchall()
 
             result = result['id']
+
+            return result
+            
+    def insert_shipment_information(self, data, connection):
+        data['END_DATE'] = END_DATE
+
+        query = """
+            INSERT INTO shipments (
+                order_id,
+                order_product_id,
+                address_id,
+                shipment_status_id,
+                shipment_memo_id,
+                message
+                )
+            VALUES (
+                %(order_id)s,
+                %(order_product_id)s,
+                %(address_id)s,
+                1,
+                %(shipment_memo_id)s,
+                %(message)s
+            )
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+            
+            result = cursor.execute(query, data)
 
             return result
 
@@ -428,34 +456,6 @@ class ShipmentDao:
             cursor.execute(query, data)
 
             result = cursor.fetchall()
-
-            return result
-
-    def insert_shipment_information(self, data, connection):
-        data['END_DATE'] = END_DATE
-
-        query = """
-            INSERT INTO shipments (
-                order_id,
-                order_product_id,
-                address_id,
-                shipment_status_id,
-                shipment_memo_id,
-                message
-                )
-            VALUES (
-                %(order_id)s,
-                %(order_product_id)s,
-                %(address_id)s,
-                1,
-                %(shipment_memo_id)s,
-                %(message)s
-            )
-        """
-
-        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
-            
-            result = cursor.execute(query, data)
 
             return result
     

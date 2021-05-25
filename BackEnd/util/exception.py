@@ -44,5 +44,5 @@ class InsertAddressInformationError(CustomError):
     pass
 class GetAddressIdError(CustomError):
     pass
-class MaximumShipmentInformationError(CustomError):
+class MaximumAddressIdError(CustomError):
     pass
