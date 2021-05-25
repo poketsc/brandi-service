@@ -247,37 +247,6 @@ class OrderDao:
             result = cursor.fetchone()
 
             return result
-    
-    def get_all_shipment_information(self, data, connection):
-
-        query = """
-            SELECT
-                address_id,
-                start_time,
-                end_time,
-                name,
-                phone_number,
-                is_deleted,
-                is_defaulted,
-                address
-
-            FROM
-                address_histories as ah
-
-            INNER JOIN addresses as ad
-            ON ad.id = ah.address_id
-            
-            WHERE ad.user_id = %(user_id)s
-            AND ah.is_deleted = false
-        """
-
-        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
-
-            cursor.execute(query, data)
-
-            result = cursor.fetchall()
-
-            return result
             
     def get_shipment_memo_information(self, connection):
 
@@ -314,6 +283,8 @@ class OrderDao:
             cursor.execute(query, data)
 
             result = cursor.fetchone()
+
+            result = result['id']
 
             return result
 
@@ -427,6 +398,39 @@ class OrderDao:
 
             return result
 
+class ShipmentDao:
+
+    def get_all_shipment_information(self, data, connection):
+
+        query = """
+            SELECT
+                address_id,
+                start_time,
+                end_time,
+                name,
+                phone_number,
+                is_deleted,
+                is_defaulted,
+                address
+
+            FROM
+                address_histories as ah
+
+            INNER JOIN addresses as ad
+            ON ad.id = ah.address_id
+            
+            WHERE ad.user_id = %(user_id)s
+            AND ah.is_deleted = false
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, data)
+
+            result = cursor.fetchall()
+
+            return result
+
     def insert_shipment_information(self, data, connection):
         data['END_DATE'] = END_DATE
 
@@ -451,6 +455,82 @@ class OrderDao:
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
             
+            result = cursor.execute(query, data)
+
+            return result
+    
+    def insert_address_information(self, data, connection):
+
+        query = """
+            INSERT INTO addresses (
+                user_id
+            )
+            VALUES (
+                %(user_id)s
+            )
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+            
+            cursor.execute(query, data)
+
+            result = cursor.lastrowid
+
+            return result
+    
+    # 주소 업데이트 시간 끊기
+    def update_address_history_end_time(self, data, connection):
+
+        query = """
+            UPDATE
+                address_histories
+            
+            SET
+                end_time = %(now)s,
+                is_defaulted = false
+            
+            WHERE
+                address_id = %(address_id)s
+                AND is_defaulted = true
+                AND is_deleted = false
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            result = cursor.execute(query, data)
+
+            return result
+    
+    # 주소 추가
+    def insert_address_history_information(self, data, connection):
+        data['END_DATE'] = END_DATE
+
+        query = """
+            INSERT INTO
+                address_histories (
+                    address_id,
+                    start_time,
+                    end_time,
+                    name,
+                    phone_number,
+                    is_deleted,
+                    is_defaulted,
+                    address
+                )
+            VALUES (
+                %(address_id)s,
+                %(now)s,
+                %(END_DATE)s,
+                %(name)s,
+                %(phone_number)s,
+                false,
+                %(is_defaulted)s,
+                %(address)s
+                )
+        """
+
+        with connection.cursor() as cursor:
+
             result = cursor.execute(query, data)
 
             return result

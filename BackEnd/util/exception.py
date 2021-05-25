@@ -36,3 +36,13 @@ class DiscountedPriceTypeError(CustomError):
     pass
 class QuantityTypeError(CustomError):
     pass
+class UpdateAddressHistoryEndTimeError(CustomError):
+    pass
+class InsertAddressHistoryInformationError(CustomError):
+    pass
+class InsertAddressInformationError(CustomError):
+    pass
+class GetAddressIdError(CustomError):
+    pass
+class MaximumShipmentInformationError(CustomError):
+    pass
