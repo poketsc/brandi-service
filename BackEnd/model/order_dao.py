@@ -231,9 +231,11 @@ class OrderDao:
                 address_id,
                 name,
                 phone_number,
-                address
+                address,
+                is_deleted,
+                is_defaulted
 
-            FROM  address_histories AS ah
+            FROM address_histories AS ah
 
             INNER JOIN addresses AS ad
             ON ad.id = ah.address_id
@@ -430,7 +432,7 @@ class ShipmentDao:
 
     def get_all_shipment_information(self, data, connection):
 
-        query = f"""
+        query = """
             SELECT
                 ah.id
                 address_id,
@@ -450,7 +452,6 @@ class ShipmentDao:
             
             WHERE ad.user_id = %(user_id)s
             AND ah.is_deleted = false
-            AND ah.end_time = {END_DATE}
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
@@ -489,7 +490,8 @@ class ShipmentDao:
             
             SET
                 end_time = %(now)s,
-                is_defaulted = %(is_defaulted)s
+                is_defaulted = %(is_defaulted)s,
+                is_deleted = %(is_deleted)s
             
             WHERE
                 id = %(id)s
@@ -523,7 +525,7 @@ class ShipmentDao:
                 %(END_DATE)s,
                 %(name)s,
                 %(phone_number)s,
-                false,
+                %(is_deleted)s,
                 %(is_defaulted)s,
                 %(address)s
                 )
