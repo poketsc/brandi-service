@@ -2,7 +2,7 @@ from flask                   import request, jsonify
 from flask.views             import MethodView
 from flask_request_validator import validate_params, Param, JSON
 
-from service.user_service import SignInService
+from service              import SignInService
 from connection           import connect_db
 
 class SignInView(MethodView):

@@ -1,5 +1,4 @@
-from model.order_dao import CartDao, OrderDao, ShipmentDao
-from model.util_dao  import SelectNowDao
+from model import CartDao, OrderDao, ShipmentDao, SelectNowDao
 from util.exception  import ( 
     ProductOptionExistError, ProductOptionSoldOutError,
     CartIdError, ChangeTimeError,

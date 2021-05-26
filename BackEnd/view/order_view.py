@@ -1,7 +1,7 @@
 from flask       import request, jsonify
 from flask.views import MethodView
 
-from service.order_service   import CartService, OrderService, ShipmentService
+from service                 import CartService, OrderService, ShipmentService
 from connection              import connect_db
 from flask_request_validator import (
     GET,
