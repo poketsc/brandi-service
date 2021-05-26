@@ -224,6 +224,7 @@ class CartDao:
 class OrderDao:
 
     def get_defaulted_true_shipment_information(self, data, connection):
+        data['END_DATE'] = END_DATE
 
         query = """
             SELECT 
@@ -241,6 +242,7 @@ class OrderDao:
             ON ad.id = ah.address_id
 
             WHERE user_id = %(user_id)s
+            AND ah.end_time = %(END_DATE)s
             AND is_defaulted = true;
         """
 
@@ -431,6 +433,7 @@ class OrderDao:
 class ShipmentDao:
 
     def get_all_shipment_information(self, data, connection):
+        data['END_DATE'] = END_DATE
 
         query = """
             SELECT
@@ -452,6 +455,7 @@ class ShipmentDao:
             
             WHERE ad.user_id = %(user_id)s
             AND ah.is_deleted = false
+            AND ah.end_time = %(END_DATE)s
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
