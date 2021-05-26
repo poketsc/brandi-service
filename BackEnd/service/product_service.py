@@ -1,4 +1,4 @@
-from model.product_dao import ProductDao
+from model import ProductDao
 
 
 class ProductService:

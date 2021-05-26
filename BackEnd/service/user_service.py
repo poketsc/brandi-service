@@ -1,6 +1,6 @@
 import bcrypt, jwt
 
-from model.user_dao import SignInDao
+from model          import SignInDao
 from util.exception import InvalidRequest
 from util.message   import WRONG_ID_OR_PW
 from config         import SECRET_KEY, ALGORITHM

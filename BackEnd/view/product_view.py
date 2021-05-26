@@ -2,8 +2,7 @@ from flask import jsonify, request
 from flask.views import MethodView
 from flask_request_validator import GET, Param, validate_params, CompositeRule, Min, Max
 
-from service.product_service import ProductService
-
+from service    import ProductService
 from connection import connect_db
 
 
