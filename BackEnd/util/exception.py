@@ -48,3 +48,5 @@ class MaximumShipmentInformationError(CustomError):
     pass
 class InvalidRequest(CustomError):
     pass
+class DeleteAddressInformationError(CustomError):
+    pass

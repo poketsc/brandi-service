@@ -21,11 +21,16 @@ PRODUCT_OPTION_ID_TYPE_ERROR = 'product_option_id 가 int 타입이 아닙니다
 PRICE_TYPE_ERROR = 'price 가 int 타입이 아닙니다.'
 DISCOUNTED_PRICE_TYPE_ERROR = 'discounted_price 가 int 또는 Nonetype이 아닙니다.'
 QUANTITY_TYPE_ERROR = 'quantity 타입이 int 가 아닙니다.'
+
+# shipments
 UPDATE_ADDRESS_HISTORY_END_TIME_ERROR = 'address_history 의 end_time 수정에 실패 했습니다.'
 INSERT_ADDRESS_HISTORY_INFORMATION_ERROR = 'address_history 의 정보 입력에 실패 했습니다.'
 INSERT_ADDRESS_INFORMATION_ERROR = 'address 정보 입력에 실패 했습니다.'
 GET_ADDRESS_ID_ERROR = 'address_id 를 가져오는데 실패 했습니다.'
 MAXIMUM_SHIPMENT_INFORMATION_ERROR = '더이상 배송지 주소를 추가 할수 없습니다.'
+DELETE_ADDRESS_INFORMATION_ERROR = '기본 배송지는 삭제 할수 없습니다.'
+
+# login
 WRONG_ID_OR_PW = '아이디 또는 비밀번호가 일치하지 않습니다.'
 
 

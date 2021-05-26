@@ -7,7 +7,7 @@ from util.exception  import (
     InsertOrderProductHistoryInformationError, InsertShipmentInformationError,
     InsertOrderInformationError, InsertOrderHistoryInformationError,
     UpdateAddressHistoryEndTimeError, InsertAddressHistoryInformationError,
-    MaximumShipmentInformationError)
+    MaximumShipmentInformationError, DeleteAddressInformationError )
 from util.message    import ( 
     PRODUCT_OPTION_DOES_NOT_EXIST, PRODUCT_OPTION_SOLD_OUT,
     POST_CART_ERROR, CHANGE_TIME_ERROR,
@@ -15,7 +15,7 @@ from util.message    import (
     INSERT_ORDER_PRODUCT_HISTORY_INFORMATION_ERROR, INSERT_SHIPMENT_INFORMATION_ERROR,
     INSERT_ORDER_INFORMATION_ERROR, INSERT_ORDER_HISTORY_INFORMATION_ERROR,
     UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, INSERT_ADDRESS_HISTORY_INFORMATION_ERROR,
-    MAXIMUM_SHIPMENT_INFORMATION_ERROR )
+    MAXIMUM_SHIPMENT_INFORMATION_ERROR, DELETE_ADDRESS_INFORMATION_ERROR )
 
 class CartService:
 
@@ -423,3 +423,32 @@ class ShipmentService:
         shipment_information = shipment_dao.get_all_shipment_information(data, connection)
 
         return shipment_information
+    
+    def delete_address_information(self, data, connection):
+
+        shipment_dao = ShipmentDao()
+        now_dao      = SelectNowDao()
+
+        # 현재 시점 선언
+        now = now_dao.select_now(connection)
+            
+        # data 에 현재 시점 추가
+        data['now'] = now
+
+
+        if data['is_defaulted'] == True:
+            raise DeleteAddressInformationError(DELETE_ADDRESS_INFORMATION_ERROR, 400)
+
+        # 데이터 정보 시간 끊기
+        data['is_deleted'] = False
+        update_address_end_time = shipment_dao.update_address_history_end_time(data, connection)
+        if not update_address_end_time:
+            raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
+
+        # 변경할 데이터 정보 insert
+        data['is_deleted'] = True
+        insert_address_history = shipment_dao.insert_address_history_information(data, connection)
+        if not insert_address_history:
+            raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+        
+        return insert_address_history
