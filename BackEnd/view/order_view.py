@@ -327,6 +327,44 @@ class ShipmentView(MethodView):
             }
 
             result = shipment_service.get_address_information(data, connection)
+            
+            connection.commit()
+
+            return jsonify({"data" : result})
+
+        except Exception as e:
+            connection.rollback()       
+            raise e
+
+        finally:
+            if connection is not None:
+                connection.close()
+    
+    # 데코레이터 선언 예정
+    @validate_params(
+        Param('user_id', JSON, int, required=True), # 테스트용 user_id
+        Param('id', JSON, int, required=True),
+        Param('address_id', JSON, int, required=True),
+        Param('name', JSON, str, required=True), 
+        Param('phone_number', JSON, str, required=True),
+        Param('is_defaulted', JSON, bool, required=True),
+        Param('address', JSON, str, required=True)
+    )
+    def delete(*args):
+        shipment_service = ShipmentService()
+
+        connection = None
+        try:
+            
+            data = request.json
+
+            connection = connect_db()
+
+            # user = request.user (데코레이터 사용시 user 선언 방법)
+
+            result = shipment_service.delete_address_information(data, connection)
+
+            connection.commit()
 
             return jsonify({"data" : result})
 
