@@ -15,16 +15,8 @@ from flask_request_validator import (
     MaxLength,
     validate_params
 )
-from util.exception import (
-    CartIdTypeError, ProductIdTypeError,
-    ProductOptionIdTypeError, PriceTypeError,
-    DiscountedPriceTypeError, QuantityTypeError )
-
-from util.message import (
-    CART_ID_TYPE_ERROR, PRODUCT_ID_TYPE_ERROR,
-    PRODUCT_OPTION_ID_TYPE_ERROR, PRICE_TYPE_ERROR,
-    DISCOUNTED_PRICE_TYPE_ERROR, QUANTITY_TYPE_ERROR
-)
+from util.exception import *
+from util.message   import *
 
 class CartView(MethodView):
 
@@ -35,8 +27,8 @@ class CartView(MethodView):
     )
     def post(*args):
         cart_service = CartService()
+        connection   = None
 
-        connection = None
         try:
             filters               = request.json
             filters["account_id"] = g.account_info["account_id"]
@@ -57,22 +49,17 @@ class CartView(MethodView):
             if connection is not None:
                 connection.close()
 
-    # 데코레이터 선언 예정
+    @login_required
     def get(self):
         cart_service = CartService()
+        connection   = None
 
-        connection = None
         try:
+            filters    = g.account_info["account_id"]
+
             connection = connect_db()
 
-            # user = request.user (데코레이터 사용시 user 선언 방법)
-
-            # 데코레이터가 없어서 user_id를 하드코딩으로 받는방법(테스트용)
-            data = {
-                'user_id' : 4
-            }
-
-            result = cart_service.get_cart(data,connection)
+            result     = cart_service.get_cart(connection, filters)
 
             return jsonify({"data" : result})
 
