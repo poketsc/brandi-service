@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from flask.views import MethodView
-from flask_request_validator import GET, Param, validate_params, CompositeRule, Min, Max
+from flask_request_validator import GET, PATH, Param, validate_params, CompositeRule, Min, Max
 
 from service    import ProductService
 from connection import connect_db
@@ -46,6 +46,38 @@ class ProductView(MethodView):
         except Exception as e:
             raise e
 
+        finally:
+            if connection is not None:
+                connection.close()
+    
+class ProductDetailView(MethodView):
+
+    @validate_params (
+        Param("product_id", GET, int, required=True),
+        Param("offset", GET, int, required=False),
+        Param("limit", GET, int, required=False)
+    )
+    def get(*args):
+
+        filters = {
+            "offset"     : int(request.args.get("offset", 0)),
+            "limit"      : int(request.args.get("limit", 5)),
+            "product_id" : int(request.args.get("product_id"))
+        }
+
+        product_service = ProductService()
+        connection = None
+
+        try:
+            connection = connect_db()
+            result = product_service.get_product_detail_list(filters, connection)
+            return jsonify({"data": result})
+
+        except Exception as e:
+            if connection is not None:
+                connection.rollback()       
+                raise e
+        
         finally:
             if connection is not None:
                 connection.close()
