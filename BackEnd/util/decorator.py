@@ -26,7 +26,7 @@ def login_required(func):
                 connection  = connect_db()
 
                 account = account_dao.account_check(connection, payload)
-                print(account)
+
                 if account["account_type_id"] != USER_ACCOUNT_TYPE:
                     raise InvalidAccessError(UNAUTHORIZED_TOKEN, 401)
 
