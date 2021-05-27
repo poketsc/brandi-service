@@ -154,7 +154,7 @@ class CartDao:
                     ON c.id = ch.cart_id
 
             SET 
-                ch.end_time   = %(now)s
+                ch.end_time = %(now)s
 
             WHERE
                 c.user_id               = %(account_id)s
@@ -163,7 +163,7 @@ class CartDao:
                 AND ch.is_deleted       = false
         """
 
-        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+        with connection.cursor() as cursor:
 
             result = cursor.execute(query, filters)
 
@@ -202,7 +202,7 @@ class CartDao:
                 AND quantity + %(quantity)s > 0
         """
         
-        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+        with connection.cursor() as cursor:
 
             result = cursor.execute(query, filters)
 

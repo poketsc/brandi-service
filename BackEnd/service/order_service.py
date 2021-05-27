@@ -85,25 +85,34 @@ class CartService:
 
         return cart_information_results
     
-    def change_quantity_cart(self, data, connection):
+    def change_quantity_cart(self, connection, filters):
 
         cart_dao = CartDao()
-        now_dao = SelectNowDao()
+        now_dao  = SelectNowDao()
+
+        # sold_out 체크 후 카트에 담기
+        product_option_information = cart_dao.product_option_sold_out_check(connection, filters)
+
+        # 상품이 존재하지 않으면 에러처리
+        if not product_option_information:
+            raise ProductOptionExistError(PRODUCT_OPTION_DOES_NOT_EXIST, 400)
+
+        # 상품 옵션이 sold_out 이면 에러처리
+        if product_option_information["is_sold_out"] == 1:
+            raise ProductOptionSoldOutError(PRODUCT_OPTION_SOLD_OUT, 400)
 
         # 현재 시점 선언
-        now = now_dao.select_now(connection)
-            
-        # data 에 현재 시점 추가
-        data['now'] = now
+        now            = now_dao.select_now(connection)
+        filters['now'] = now
 
         # 선분이력 시간 끊기
-        change_time = cart_dao.update_cart_history_end_time(data, connection)
+        change_time = cart_dao.update_cart_history_end_time(connection, filters)
 
         if not change_time:
             raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
         
         # 선분이력 복사, 원하는 형태로 데이터 수정
-        change_history_information = cart_dao.update_cart_history_information(data, connection)
+        change_history_information = cart_dao.update_cart_history_information(connection, filters)
 
         if not change_history_information:
             raise ChangeHistoryInformationError(CHANGE_HISTORY_INFORMATION_ERROR, 400)
