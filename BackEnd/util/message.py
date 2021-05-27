@@ -32,5 +32,7 @@ DELETE_ADDRESS_INFORMATION_ERROR = '기본 배송지는 삭제 할수 없습니�
 
 # login
 WRONG_ID_OR_PW = '아이디 또는 비밀번호가 일치하지 않습니다.'
+LOGIN_REQUIRED = '로그인이 필요합니다.'
+UNAUTHORIZED_TOKEN = '유효하지 않은 사용자입니다.'
 
 

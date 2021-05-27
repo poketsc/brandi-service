@@ -1,6 +1,6 @@
 from model.order_dao   import CartDao, OrderDao, ShipmentDao
 from model.product_dao import ProductDao
-from model.user_dao    import SignInDao
+from model.user_dao    import AccountDao
 from model.util_dao    import SelectNowDao
 
 __all__ = [
@@ -8,6 +8,6 @@ __all__ = [
     "OrderDao",
     "ShipmentDao",
     "ProductDao",
-    "SignInDao",
+    "AccountDao",
     "SelectNowDao"
 ]
