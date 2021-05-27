@@ -13,7 +13,6 @@ class SelectNowDao:
             cursor.execute(query)
 
             result = cursor.fetchone()
-
             result = result['now()']
 
             return result
