@@ -104,7 +104,7 @@ class ProductDao:
 
             cursor.execute(query, filters)
 
-            result = cursor.fetchall()
+            result = cursor.fetchone()
 
             return result
 

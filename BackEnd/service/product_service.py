@@ -31,7 +31,7 @@ class ProductService:
         product_option_information = product_dao.get_product_option_information(filters, connection)
 
         # 셀러 아이디 filters에 추가
-        filters["seller_id"] = product_detail[0]["seller_id"]
+        filters["seller_id"] = product_detail["seller_id"]
 
         product_list = product_dao.get_product_list(connection, filters)
 

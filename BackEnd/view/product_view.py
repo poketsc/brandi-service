@@ -53,24 +53,25 @@ class ProductView(MethodView):
 class ProductDetailView(MethodView):
 
     @validate_params (
-        Param("product_id", GET, int, required=True),
+        Param("product_id", PATH, int),
         Param("offset", GET, int, required=False),
         Param("limit", GET, int, required=False)
     )
-    def get(*args):
+    def get(*args, product_id):
 
         filters = {
             "offset"     : int(request.args.get("offset", 0)),
             "limit"      : int(request.args.get("limit", 5)),
-            "product_id" : int(request.args.get("product_id"))
+            "product_id" : int(product_id)
         }
 
         product_service = ProductService()
-        connection = None
+        connection      = None
 
         try:
             connection = connect_db()
-            result = product_service.get_product_detail_list(filters, connection)
+            result     = product_service.get_product_detail_list(filters, connection)
+
             return jsonify({"data": result})
 
         except Exception as e:
