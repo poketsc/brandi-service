@@ -5,7 +5,7 @@ from flask_request_validator import validate_params, Param, JSON
 from service              import SignInService
 from connection           import connect_db
 
-class SignInView(MethodView):
+class AccountView(MethodView):
     
     @validate_params(
     Param("nickname", JSON, str, required=True),
