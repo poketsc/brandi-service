@@ -99,7 +99,9 @@ class CartDao:
                 c.product_id,
                 c.product_option_id,
                 ch.cart_id,
-                sh.seller_id
+                sh.seller_id,
+                ph.price - TRUNCATE((ph.price * (ph.discount_rate/100)), -1) AS sale_price,
+                TRUNCATE((ph.price * (ph.discount_rate/100)), -1) AS estimated_discount_price
 
             FROM
                 carts as c
