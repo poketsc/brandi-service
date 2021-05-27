@@ -1,14 +1,11 @@
 import pymysql
-
 from util.const import END_DATE
 
 class CartDao:
 
     # 카트에 상품 담기 기능
-    def post_cart(self, data, connection):
+    def post_cart(self, connection, filters):
 
-        # 카트에 상품을 담는 sql문
-        # product_option_id를 프론트로부터 받아오지 않아서 서브쿼리 사용으로 product_option_id 도출
         query  = """
             INSERT INTO carts(
                 user_id,
@@ -16,7 +13,7 @@ class CartDao:
                 product_id
             )
             VALUES(
-                %(user_id)s,
+                %(account_id)s,
                 %(product_option_id)s,
                 ( SELECT
                     product_id
@@ -30,18 +27,17 @@ class CartDao:
         
         with connection.cursor() as cursor:
 
-            cursor.execute(query, data)
+            cursor.execute(query, filters)
 
             result = cursor.lastrowid
 
             return result
 
     # 카트 히스토리에 담기 기능
-    def post_history_cart(self, data, connection):
-        data['END_DATE'] = END_DATE
+    def post_history_cart(self, connection, filters):
         
         # 카트 히스토리에 데이터 담는 기능
-        query = """ 
+        query = f""" 
             INSERT INTO cart_histories(
                 cart_id,
                 quantity,
@@ -53,20 +49,19 @@ class CartDao:
                 %(cart_id)s,
                 %(quantity)s,
                 %(now)s,
-                %(END_DATE)s,
+                "{END_DATE}",
                 false
             )
         """
     
         with connection.cursor() as cursor:
 
-            result = cursor.execute(query, data)
+            result = cursor.execute(query, filters)
 
             return result
         
-    
     # 상품 옵션 판매 여부 확인
-    def product_option_sold_out_check(self, data, connection):
+    def product_option_sold_out_check(self, connection, filters):
 
         query = """
             SELECT 
@@ -74,24 +69,22 @@ class CartDao:
                 is_sold_out
             FROM
                 product_options AS po
-                
             WHERE
                 po.id = %(product_option_id)s
         """
         
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
-            cursor.execute(query, data)
+            cursor.execute(query, filters)
 
             result = cursor.fetchone()
 
             return result
 
-
     # 카트 정보 가져오기
-    def get_cart_information(self, data, connection):
+    def get_cart_information(self, connection, filters):
 
-        query = """
+        query = f"""
             SELECT
                 sh.korean_name,
                 ph.name,
@@ -105,89 +98,79 @@ class CartDao:
                 pi.image_url,
                 c.product_id,
                 c.product_option_id,
-                ch.cart_id
+                ch.cart_id,
+                sh.seller_id
 
-            FROM carts as c
+            FROM
+                carts as c
 
-            JOIN products as p
-            ON c.product_id = p.id
-
-            JOIN product_histories as ph
-            ON c.product_id = ph.product_id
-
-            AND ph.is_deleted = false
-
-            JOIN product_options as po
-            ON c.product_option_id = po.id
-
-            AND po.is_sold_out = false
-
-            JOIN sizes as s
-            ON po.size_id = s.Id
-
-            JOIN colors as co
-            ON po.color_id = co.Id
-
-            JOIN cart_histories as ch
-            ON c.id = ch.cart_id
-
-            AND ch.is_deleted = false
-
-            JOIN seller_histories as sh
-            ON p.seller_id = sh.seller_id
-
-            AND sh.is_deleted = false
-
-            JOIN product_images as pi
-            ON c.product_id = pi.product_id
-            
-            AND pi.is_main=true
+            INNER JOIN products as p
+                    ON c.product_id = p.id
+            INNER JOIN product_histories as ph
+                    ON c.product_id = ph.product_id
+                    AND ph.is_deleted = false
+                    AND ph.end_time = "{END_DATE}"
+            INNER JOIN product_options as po
+                    ON c.product_option_id = po.id
+                    AND po.is_sold_out = false
+            INNER JOIN sizes as s
+                    ON po.size_id = s.Id
+            INNER JOIN colors as co
+                    ON po.color_id = co.Id
+            INNER JOIN cart_histories as ch
+                    ON c.id = ch.cart_id
+                    AND ch.is_deleted = false
+                    AND ch.end_time = "{END_DATE}"
+            INNER JOIN seller_histories as sh
+                    ON p.seller_id = sh.seller_id
+                    AND sh.is_deleted = false
+                    AND sh.end_time = "{END_DATE}"
+            INNER JOIN product_images as pi
+                    ON c.product_id = pi.product_id
+                    AND pi.is_main = true
 
             WHERE
-                c.user_id=%(user_id)s
+                c.user_id = %(account_id)s
         """
         
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
-            cursor.execute(query, data)
+            cursor.execute(query, filters)
 
             result = cursor.fetchall()
 
             return result
 
     # 카트 히스토리 선분이력 시간 끊기(end_time 시간 DB 기준 now로 설정)
-    def update_cart_history_end_time(self, data, connection):
-        data['END_DATE'] = END_DATE
+    def update_cart_history_end_time(self, connection, filters):
 
-        query = """
+        query = f"""
             UPDATE
                 cart_histories AS ch
 
             INNER JOIN carts AS c
-            ON c.id = ch.cart_id
+                    ON c.id = ch.cart_id
 
             SET 
-                ch.end_time = %(now)s,
-                ch.is_deleted = true
+                ch.end_time   = %(now)s
 
             WHERE
-                c.user_id = %(user_id)s
+                c.user_id               = %(account_id)s
                 AND c.product_option_id = %(product_option_id)s
-                AND ch.end_time = %(END_DATE)s
-                AND ch.is_deleted = false
+                AND ch.end_time         = "{END_DATE}"
+                AND ch.is_deleted       = false
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
-            result = cursor.execute(query, data)
+            result = cursor.execute(query, filters)
 
             return result
     
     # 카트 선분이력 복사,데이터 일괄 변경
-    def update_cart_history_information(self, data, connection):
-        data['END_DATE'] = END_DATE
+    def update_cart_history_information(self, connection, filters):
         
-        query = """
+        query = f"""
             INSERT INTO
                 cart_histories (
                             cart_id,
@@ -199,26 +182,27 @@ class CartDao:
             SELECT
                 cart_id,
                 %(now)s,
-                %(END_DATE)s,
+                "{END_DATE}",
                 quantity + %(quantity)s,
                 false
 
-            FROM cart_histories AS ch
+            FROM
+                cart_histories AS ch
 
             INNER JOIN carts AS c
-            ON c.id = ch.cart_id
+                    ON c.id = ch.cart_id
 
             WHERE 
-                c.user_id = %(user_id)s
-                AND ch.end_time = %(now)s
+                c.user_id               = %(account_id)s
+                AND ch.end_time         = %(now)s
                 AND c.product_option_id = %(product_option_id)s
-                AND ch.is_deleted = true
+                AND ch.is_deleted       = false
                 AND quantity + %(quantity)s > 0
         """
         
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
-            result = cursor.execute(query, data)
+            result = cursor.execute(query, filters)
 
             return result
 
@@ -455,7 +439,7 @@ class ShipmentDao:
             ON ad.id = ah.address_id
             
             WHERE ad.user_id = %(user_id)s
-            AND ah.is_deleted = false
+            AND ah.is_deleted = falseㅌ
             AND ah.end_time = %(END_DATE)s
         """
 

@@ -1,6 +1,7 @@
-from flask       import request, jsonify
+from flask       import request, jsonify, g
 from flask.views import MethodView
 
+from util.decorator          import login_required
 from service                 import CartService, OrderService, ShipmentService
 from connection              import connect_db
 from flask_request_validator import (
@@ -27,24 +28,22 @@ from util.message import (
 
 class CartView(MethodView):
 
-    #데코레이터 선언 예정
+    @login_required
     @validate_params(
-        Param('user_id', JSON, int, required=True), # 테스트용 user_id
-        Param('product_option_id', JSON, int, required=True),
-        Param('quantity', JSON, int, required=True),
+        Param("product_option_id", JSON, int, required=True),
+        Param("quantity", JSON, int, required=True)
     )
     def post(*args):
         cart_service = CartService()
 
         connection = None
         try:
-            connection = connect_db()
-            
-            data = request.json
+            filters               = request.json
+            filters["account_id"] = g.account_info["account_id"]
 
-            # data['user_id'] = request.user.id  (데코레이터 사용시 data에 user_id 추가용) 
-            
-            result = cart_service.post_cart(data, connection)
+            connection = connect_db()
+
+            result = cart_service.post_cart(connection, filters)
             
             connection.commit()
             
