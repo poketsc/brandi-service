@@ -75,29 +75,31 @@ class ProductDao:
                 ph.price,
                 ph.discount_rate,
                 ph.price - TRUNCATE((ph.price * (ph.discount_rate/100)), -1) AS sale_price,
-                (SELECT
+                (   
+                    SELECT
                         COUNT(*)
-                FROM
-                    order_product_histories AS oh
-                INNER JOIN order_products AS op
-                        ON op.id = oh.order_product_id
-                WHERE
-                    op.product_id = %(product_id)s
-                AND
-                    oh.order_status_id = 1) AS total_order,
+                    FROM
+                        order_product_histories AS oh
+                    INNER JOIN order_products AS op
+                            ON op.id = oh.order_product_id
+                    WHERE
+                        op.product_id = %(product_id)s
+                    AND
+                        oh.order_status_id = 1
+                ) AS total_order,
                 ph.shipment_information,
                 ph.detail_page_html
 
-                FROM product_histories AS ph
+            FROM product_histories AS ph
 
-                INNER JOIN products AS p
-                        ON p.id = ph.product_id
+            INNER JOIN products AS p
+                    ON p.id = ph.product_id
 
-                INNER JOIN seller_histories AS sh
-                        ON sh.seller_id = p.seller_id
+            INNER JOIN seller_histories AS sh
+                    ON sh.seller_id = p.seller_id
 
-                WHERE
-                    ph.product_id = %(product_id)s                  
+            WHERE
+                ph.product_id = %(product_id)s                  
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
@@ -142,7 +144,8 @@ class ProductDao:
             INNER JOIN colors AS c
                     ON po.color_id = c.id
             WHERE
-                po.product_id = %(product_id)s
+                po.product_id  = %(product_id)s
+                po.is_sold_out = false
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
