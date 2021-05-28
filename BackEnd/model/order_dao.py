@@ -65,13 +65,25 @@ class CartDao:
 
         query = """
             SELECT 
-                id,
-                is_sold_out
+                po.id,
+                po.is_sold_out
             FROM
                 product_options AS po
-            WHERE
-                po.id = %(product_option_id)s
         """
+
+        if filters.get("cart_id"):
+            query += """
+                INNER JOIN carts AS c
+                        ON c.product_option_id = po.id
+                WHERE
+                    c.id = %(cart_id)s
+            """
+        
+        if filters.get("product_option_id"):
+            query += """
+                WHERE
+                    po.id = %(product_option_id)s
+            """
         
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
@@ -148,19 +160,15 @@ class CartDao:
 
         query = f"""
             UPDATE
-                cart_histories AS ch
-
-            INNER JOIN carts AS c
-                    ON c.id = ch.cart_id
+                cart_histories
 
             SET 
-                ch.end_time = %(now)s
+                end_time = %(now)s
 
             WHERE
-                c.user_id               = %(account_id)s
-                AND c.product_option_id = %(product_option_id)s
-                AND ch.end_time         = "{END_DATE}"
-                AND ch.is_deleted       = false
+                cart_id              = %(cart_id)s
+                AND end_time         = "{END_DATE}"
+                AND is_deleted       = false
         """
 
         with connection.cursor() as cursor:
@@ -185,27 +193,37 @@ class CartDao:
                 cart_id,
                 %(now)s,
                 "{END_DATE}",
-                quantity + %(quantity)s,
-                false
+        """
 
+        if not filters.get("quantity"):
+            query += "quantity,"
+
+        if filters.get("quantity"):
+            query += "quantity + %(quantity)s,"
+
+        if not filters.get("is_deleted"):
+            query += "false"
+        
+        if filters.get("is_deleted"):
+            query += "true"
+
+        query += """
             FROM
                 cart_histories AS ch
 
-            INNER JOIN carts AS c
-                    ON c.id = ch.cart_id
-
             WHERE 
-                c.user_id               = %(account_id)s
-                AND ch.end_time         = %(now)s
-                AND c.product_option_id = %(product_option_id)s
-                AND ch.is_deleted       = false
-                AND quantity + %(quantity)s > 0
+                cart_id        = %(cart_id)s
+                AND end_time   = %(now)s
+                AND is_deleted = false
         """
+
+        if filters.get("quantity"):
+            query += "AND quantity + %(quantity)s > 0"
         
         with connection.cursor() as cursor:
 
             result = cursor.execute(query, filters)
-
+            
             return result
 
 class OrderDao:
