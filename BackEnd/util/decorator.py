@@ -16,7 +16,7 @@ def login_required(func):
         access_token = request.headers.get("Authorization")
         
         if access_token is None:
-            LoginRequiredError(LOGIN_REQUIRED, 401)
+            raise LoginRequiredError(LOGIN_REQUIRED, 401)
             
         connection = None
         
