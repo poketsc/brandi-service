@@ -75,7 +75,7 @@ class CartView(MethodView):
     
     @login_required
     @validate_params(
-        Param('product_option_id', JSON, int, required=True),
+        Param('cart_id', JSON, int, required=True),
         Param('quantity', JSON, int, required=True)
     )
     def patch(*args):
@@ -102,23 +102,21 @@ class CartView(MethodView):
             if connection is not None:
                 connection.close()
     
-    # 데코레이터 선언 예정
+    @login_required
     @validate_params(
-        Param('user_id', JSON, int, required=True), # 테스트용 user_id
-        Param('product_option_id', JSON, int, required=True)
+        Param('cart_id', JSON, int, required=True)
     )
     def delete(*args):
         cart_service = CartService()
+        connection   = None
 
-        connection = None
         try:
+            filters               = request.json
+            filters["account_id"] = g.account_info["account_id"]
+
             connection = connect_db()
 
-            # user = request.user (데코레이터 사용시 user 선언 방법)
-            
-            data = request.json
-
-            result = cart_service.delete_cart_product(data, connection)
+            result     = cart_service.delete_cart_product(connection, filters)
 
             connection.commit()
 

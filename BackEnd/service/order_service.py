@@ -37,6 +37,8 @@ class CartService:
         # 카트에 이미 같은 상품 존재하면 수량 +1
         # 카트 히스토리 선분이력 변경
         if product_duplicate_check:
+            # filters에 해당 카트 아이디 추가
+            filters["cart_id"] = cart_information["cart_id"]
             # 선분이력 시간 끊기
             change_time = cart_dao.update_cart_history_end_time(connection, filters)
 
@@ -58,7 +60,7 @@ class CartService:
             raise CartIdError(POST_CART_ERROR, 400)
 
         # cart에 상품 담은 후 cart_id 받아와서 data에 추가
-        filters['cart_id'] = cart_id
+        filters["cart_id"] = cart_id
 
         # cart 히스토리 생성
         result = cart_dao.post_history_cart(connection, filters)
@@ -103,7 +105,7 @@ class CartService:
 
         # 현재 시점 선언
         now            = now_dao.select_now(connection)
-        filters['now'] = now
+        filters["now"] = now
 
         # 선분이력 시간 끊기
         change_time = cart_dao.update_cart_history_end_time(connection, filters)
@@ -119,24 +121,29 @@ class CartService:
         
         return change_history_information
     
-    def delete_cart_product(self, data, connection):
+    def delete_cart_product(self, connection, filters):
 
         cart_dao = CartDao()
-        now_dao = SelectNowDao()
+        now_dao  = SelectNowDao()
 
         # 현재 시점 선언
-        now = now_dao.select_now(connection)
-            
-        # data 에 현재 시점 추가
-        data['now'] = now
+        now            = now_dao.select_now(connection)
+        filters["now"] = now
 
         # 선분이력 시간 끊기
-        change_time = cart_dao.update_cart_history_end_time(data, connection)
+        change_time = cart_dao.update_cart_history_end_time(connection, filters)
 
         if not change_time:
             raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
         
-        return change_time
+        # 선분이력 복사, 원하는 형태로 데이터 수정
+        filters["is_deleted"]      = True
+        change_history_information = cart_dao.update_cart_history_information(connection, filters)
+
+        if not change_history_information:
+            raise ChangeHistoryInformationError(CHANGE_HISTORY_INFORMATION_ERROR, 400)
+        
+        return change_history_information
     
 class OrderService:
 
