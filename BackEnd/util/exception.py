@@ -6,7 +6,7 @@ class CustomError(Exception):
 class ValidationError(CustomError):
     pass
 
-class ProductOptionExistError(CustomError):
+class ProductIdExistError(CustomError):
     pass
 
 class ProductOptionSoldOutError(CustomError):
@@ -79,4 +79,13 @@ class InvalidAccessError(CustomError):
     pass
 
 class LoginRequiredError(CustomError):
+    pass
+
+class CartQuantityError(CustomError):
+    pass
+
+class ProductOptionStockError(CustomError):
+    pass
+
+class OrderIdTypeError(CustomError):
     pass

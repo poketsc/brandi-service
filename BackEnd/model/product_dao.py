@@ -144,8 +144,8 @@ class ProductDao:
             INNER JOIN colors AS c
                     ON po.color_id = c.id
             WHERE
-                po.product_id  = %(product_id)s
-                po.is_sold_out = false
+                po.product_id      = %(product_id)s
+                AND po.is_sold_out = false
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
