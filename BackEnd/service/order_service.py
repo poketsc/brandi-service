@@ -8,99 +8,96 @@ class CartService:
 
         cart_dao = CartDao()
         now_dao  = SelectNowDao()
-        
-        # sold_out 체크 후 카트에 담기
-        product_option_information = cart_dao.product_option_sold_out_check(connection, filters)
 
-        # 상품이 존재하지 않으면 에러처리
-        if not product_option_information:
-            raise ProductOptionExistError(PRODUCT_OPTION_DOES_NOT_EXIST, 400)
+        # account_id 선언
+        account_id = {"account_id" : filters["account_id"]}
 
-        # 상품 옵션이 sold_out 이면 에러처리
-        if product_option_information["is_sold_out"] == 1:
-            raise ProductOptionSoldOutError(PRODUCT_OPTION_SOLD_OUT, 400)
-        
         # 카트 정보 확인
-        cart_informations = cart_dao.get_cart_information(connection, filters)
+        cart_informations = cart_dao.get_cart_information(connection, account_id)
 
-        # 카트에 같은 상품 존재하는지 확인
-        product_duplicate_check = False
-        for cart_information in cart_informations:
-            if cart_information["product_option_id"] == filters["product_option_id"]:
-                product_duplicate_check = True
-                break
-        
         # 현재 시점 선언
-        now            = now_dao.select_now(connection)
-        filters["now"] = now
+        now               = now_dao.select_now(connection)
 
-        # 카트에 이미 같은 상품 존재하면 수량 +1
-        # 카트 히스토리 선분이력 변경
-        if product_duplicate_check:
-            # filters에 해당 카트 아이디 추가
-            filters["cart_id"] = cart_information["cart_id"]
-            # 선분이력 시간 끊기
-            change_time = cart_dao.update_cart_history_end_time(connection, filters)
+        for filter in filters["data"]:
 
-            if not change_time:
-                raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
+            # 상품 존재 여부 확인
+            product_id = cart_dao.product_exist_check(connection, filter)
 
-            # 선분이력 정보 일괄 변경
-            change_history_information = cart_dao.update_cart_history_information(connection, filters)
+            if not product_id:
+                raise ProductIdExistError(PRODUCT_ID_DOES_NOT_EXIST, 400)
 
-            if not change_history_information:
-                raise ChangeHistoryInformationError(CHANGE_HISTORY_INFORMATION_ERROR, 400)
+            # 상품 옵션 sold_out 체크 후 카트에 담기
+            product_option_information = cart_dao.product_option_sold_out_check(connection, filter)
 
-            return change_history_information
+            # 상품 옵션이 존재하지 않으면 sold_out 에러처리
+            if not product_option_information:
+                raise ProductOptionSoldOutError(PRODUCT_OPTION_SOLD_OUT, 400)
+            
+            # 카트에 같은 상품 존재하는지 확인
+            product_duplicate_check = False
+            for cart_information in cart_informations:
+                if cart_information["product_option_id"] == filter["product_option_id"]:
+                    product_duplicate_check = True
+                    break
+            
+            filter["now"]        = now
+            filter["account_id"] = filters["account_id"]
 
-        # 카트에 같은 상품이 존재하지 않으면 cart에 상품 담기
-        cart_id = cart_dao.post_cart(connection, filters)
+            # 카트에 같은 상품이 존재하지 않으면 cart에 상품 담기
+            if not product_duplicate_check:
+                cart_id = cart_dao.post_cart(connection, filter)
 
-        if not cart_id:
-            raise CartIdError(POST_CART_ERROR, 400)
+                if not cart_id:
+                    raise CartIdError(POST_CART_ERROR, 400)
 
-        # cart에 상품 담은 후 cart_id 받아와서 data에 추가
-        filters["cart_id"] = cart_id
+                # cart에 상품 담은 후 cart_id 받아와서 data에 추가
+                filter["cart_id"] = cart_id
 
-        # cart 히스토리 생성
-        result = cart_dao.post_history_cart(connection, filters)
+                # cart 히스토리 생성
+                cart_dao.post_history_cart(connection, filter)
 
-        return result
-    
+            # 카트에 이미 같은 상품 존재하면 수량 +1
+            # 카트 히스토리 선분이력 변경
+            else:
+                # filters에 해당 카트 아이디 추가
+                filter["cart_id"] = cart_information["cart_id"]
+                # 선분이력 시간 끊기
+                change_time = cart_dao.update_cart_history_end_time(connection, filter)
+
+                if not change_time:
+                    raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
+
+                # 선분이력 정보 일괄 변경
+                change_history_information = cart_dao.update_cart_history_information(connection, filter)
+
+                if not change_history_information:
+                    raise ChangeHistoryInformationError(CHANGE_HISTORY_INFORMATION_ERROR, 400)
+
+        return 1
+
     def get_cart(self, connection, filters):
 
         cart_dao          = CartDao()
         cart_informations = cart_dao.get_cart_information(connection, filters)
 
-        # 총 상품금액, 할인예정 금액, 총 결제 금액 
-        total_original_price       = sum([cart_information["price"] for cart_information in cart_informations])
-        estimated_discounted_price = sum([cart_information["estimated_discount_price"] for cart_information in cart_informations])
-        total_payment              = total_original_price - estimated_discounted_price
-
-        # 장바구니(카트)에 필요한 모든 정보 합치기
-        cart_information_results = {
-            "product_informations"       : cart_informations,
-            "total_original_price"       : total_original_price,
-            "estimated_discounted_price" : estimated_discounted_price,
-            "total_payment"              : total_payment
-        }
-
-        return cart_information_results
+        return cart_informations
     
     def change_quantity_cart(self, connection, filters):
 
         cart_dao = CartDao()
         now_dao  = SelectNowDao()
 
-        # sold_out 체크 후 카트에 담기
+        # 상품 존재 여부 확인
+        product_id = cart_dao.product_exist_check(connection, filters)
+
+        if not product_id:
+            raise ProductIdExistError(PRODUCT_ID_DOES_NOT_EXIST, 400)
+
+        # 상품 옵션 sold_out 체크 후 카트에 담기
         product_option_information = cart_dao.product_option_sold_out_check(connection, filters)
 
-        # 상품이 존재하지 않으면 에러처리
+        # 상품 옵션이 존재하지 않으면 sold_out 에러처리
         if not product_option_information:
-            raise ProductOptionExistError(PRODUCT_OPTION_DOES_NOT_EXIST, 400)
-
-        # 상품 옵션이 sold_out 이면 에러처리
-        if product_option_information["is_sold_out"] == 1:
             raise ProductOptionSoldOutError(PRODUCT_OPTION_SOLD_OUT, 400)
 
         # 현재 시점 선언
@@ -127,67 +124,69 @@ class CartService:
         now_dao  = SelectNowDao()
 
         # 현재 시점 선언
-        now            = now_dao.select_now(connection)
-        filters["now"] = now
+        now = now_dao.select_now(connection)
 
-        # 선분이력 시간 끊기
-        change_time = cart_dao.update_cart_history_end_time(connection, filters)
+        for filter in filters["data"]:
 
-        if not change_time:
-            raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
-        
-        # 선분이력 복사, 원하는 형태로 데이터 수정
-        filters["is_deleted"]      = True
-        change_history_information = cart_dao.update_cart_history_information(connection, filters)
+            filter["now"]        = now
+            filter["account_id"] = filters["account_id"]
 
-        if not change_history_information:
-            raise ChangeHistoryInformationError(CHANGE_HISTORY_INFORMATION_ERROR, 400)
-        
+            # 선분이력 시간 끊기
+            change_time = cart_dao.update_cart_history_end_time(connection, filter)
+
+            if not change_time:
+                raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
+            
+            # 선분이력 복사, 원하는 형태로 데이터 수정
+            filter["is_deleted"]       = True
+            change_history_information = cart_dao.update_cart_history_information(connection, filter)
+
+            if not change_history_information:
+                raise ChangeHistoryInformationError(CHANGE_HISTORY_INFORMATION_ERROR, 400)
+            
         return change_history_information
     
 class OrderService:
 
-    def get_order_information(self, data, connection):
+    def get_order_information(self, connection, filters):
 
         order_dao = OrderDao()
 
         # 기본 배송지 정보 가져오기
-        shipment_information = order_dao.get_defaulted_true_shipment_information(data, connection)
+        shipment_information      = order_dao.get_defaulted_true_shipment_information(connection, filters)
 
         # 배송지 메모 리스트 가져오기
         shipment_memo_information = order_dao.get_shipment_memo_information(connection)
 
         result = {
-            "shipment_information" : shipment_information,
+            "shipment_information"      : shipment_information,
             "shipment_memo_information" : shipment_memo_information
         }
 
         return result
     
-    def post_order(self, data, connection):
+    def post_order(self, connection, filters):
 
         order_dao = OrderDao()
         now_dao   = SelectNowDao()
         cart_dao  = CartDao()
         
         # 외부로 부터 받은 data 복제
-        copy_data = data.copy()
+        copy_data = filters.copy()
 
-        carts = {
-            "cart" : data["cart"]
-        }
+        carts = filters["carts"]
 
-        # cart 삭제
-        del copy_data["cart"]
+        # 복제 데이터에 carts 삭제
+        del copy_data["carts"]
         
         # 현재 시점 선언
         now = now_dao.select_now(connection)
             
         # copy_data 에 현재 시점 추가
-        copy_data['now'] = now
+        copy_data["now"] = now
 
         # 주문 추가
-        order_id = order_dao.insert_order_information(copy_data, connection)
+        order_id = order_dao.insert_order_information(connection, copy_data)
 
         # 주문 추가 실패 에러메세지
         if not order_id:
@@ -195,26 +194,52 @@ class OrderService:
 
         copy_data['order_id'] = order_id
 
-        order_history_id = order_dao.insert_order_history_information(copy_data, connection)
+        order_history_id = order_dao.insert_order_history_information(connection, copy_data)
 
         # 주문 히스토리 추가 실패 에러메세지
         if not order_history_id:
             raise InsertOrderHistoryInformationError(INSERT_ORDER_HISTORY_INFORMATION_ERROR, 400)
 
-        # cart의 갯수만큼 for문을 돌려서 각각 데이터 입력
-        for cart in carts['cart']:
-            cart['now'] = now
-            cart['user_id'] = data['user_id']
-            cart['order_id'] = order_id           
-            order_product_id = order_dao.insert_order_product_information(cart, connection)
+        # carts의 갯수만큼 for문을 돌려서 각각 데이터 입력
+        for cart in carts:
+            cart["account_id"] = filters["account_id"]
+            cart["now"]        = now
+            cart["account_id"] = copy_data["account_id"]
+            cart["order_id"]   = order_id
+
+            # 상품 존재 여부 확인
+            product_id = cart_dao.product_exist_check(connection, cart)
+
+            if not product_id:
+                raise ProductIdExistError(PRODUCT_ID_DOES_NOT_EXIST, 400)
+
+            # 상품 옵션 sold_out 체크 후 카트에 담기
+            product_option_information = cart_dao.product_option_sold_out_check(connection, cart)
+
+            # 상품 옵션이 존재하지 않으면 sold_out 에러처리
+            if not product_option_information:
+                raise ProductOptionSoldOutError(PRODUCT_OPTION_SOLD_OUT, 400)
+
+            # 상품, 상품옵션 아이디 추가
+            cart["product_id"]        = product_id["id"]
+            cart["product_option_id"] = product_option_information["id"]
+
+            order_product_id   = order_dao.insert_order_product_information(connection, cart)
 
             if not order_product_id:
                 raise InsertOrderProductInformationError(INSERT_ORDER_PRODUCT_INFORMATION_ERROR, 400)
         
-            cart['order_product_id'] = order_product_id
+            cart["order_product_id"] = order_product_id
+
+            # 카트에 담긴 수량, 할인된 가격 가져오기
+            cart_information   = cart_dao.get_cart_information(connection, cart)
+            cart["quantity"]   = cart_information[0]["quantity"]
+
+            if cart_information[0]["sale_price"]:
+                cart["sale_price"] = cart_information[0]["sale_price"]
 
             # 주문 상품 히스토리 정보 입력
-            order_product_history = order_dao.insert_order_product_history_information(cart, connection)
+            order_product_history = order_dao.insert_order_product_history_information(connection, cart)
 
             if not order_product_history:
                 raise InsertOrderProductHistoryInformationError(INSERT_ORDER_PRODUCT_HISTORY_INFORMATION_ERROR, 400)
@@ -223,19 +248,45 @@ class OrderService:
             copy_data['order_product_id'] = order_product_id
 
             # 배송 정보 입력
-            result = order_dao.insert_shipment_information(copy_data, connection)
+            result = order_dao.insert_shipment_information(connection, copy_data)
 
             if not result:
                 raise InsertShipmentInformationError(INSERT_SHIPMENT_INFORMATION_ERROR, 400)
             
-            # 주문 완료 후 cart_histories에서 cart delete
-            change_time = cart_dao.update_cart_history_end_time(cart, connection)
+            # 주문 완료 후 cart_histories에서 시간 끊기
+            change_time = cart_dao.update_cart_history_end_time(connection, cart)
 
             if not change_time:
                 raise ChangeTimeError(CHANGE_TIME_ERROR, 400)
 
-        # 잘 실행 됬으면 1 리턴
-        return change_time
+            cart["is_deleted"] = True
+            # 주문 완료 후 cart_histories에서 cart delete
+            change_history_information = cart_dao.update_cart_history_information(connection, cart)
+
+            if not change_history_information:
+                raise ChangeHistoryInformationError(CHANGE_HISTORY_INFORMATION_ERROR, 400)
+            
+            # 상품 옵션 수량 확인
+            product_option_stock_check = order_dao.update_product_option_stock(connection, cart)
+
+            if not product_option_stock_check:
+                raise ProductOptionStockError(PRODUCT_OPTION_STOCK_ERROR, 400)
+            
+            # 주문 후 상품 옵션 수량이 -10 이면 sold_out 처리
+            order_dao.update_product_option_is_sold_out(connection, cart)
+
+        # 잘 실행 됬으면 order_id 리턴
+        return order_id
+
+class OrderCompleteService:
+
+    def get_order_complete(self, connection, filters):
+
+        order_dao = OrderDao()
+
+        result    = order_dao.get_order_complete_information(connection, filters)
+
+        return result
 
 class ShipmentService:
     

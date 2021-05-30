@@ -35,9 +35,9 @@ def create_app():
     def handle_errors(e):
         return jsonify({'message' : e.message}), e.status_code
 
-    # @app.errorhandler(InvalidRequestError)
-    # def handle_data_errors(e):
-    #     return jsonify(demo_error_formatter(e)), 400
+    @app.errorhandler(InvalidRequestError)
+    def handle_data_errors(e):
+        return jsonify(demo_error_formatter(e)), 400
 
     @app.errorhandler(Exception)
     def handle_exceptions(e):

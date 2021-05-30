@@ -1,5 +1,5 @@
 import pymysql
-from util.const import END_DATE
+from util.const import END_DATE, PAYMENT_COMPLETE, ORDER_COMPLETE, SHIPMENT_READY
 
 class CartDao:
 
@@ -59,14 +59,56 @@ class CartDao:
             result = cursor.execute(query, filters)
 
             return result
+    
+    # 상품 존재 여부 확인
+    def product_exist_check(self, connection, filters):
+
+        query = """
+            SELECT
+                ph.id
+            
+            FROM
+                product_histories AS ph
+        """
+
+        if filters.get("cart_id"):
+            query += f"""
+                INNER JOIN carts AS c
+                        ON c.product_id = ph.product_id
+
+                WHERE
+                    c.id = %(cart_id)s
+                    AND ph.end_time = "{END_DATE}"
+                    AND ph.is_deleted = false
+                    AND ph.is_sold = true
+            """
+
+        if filters.get("product_option_id"):
+            query += f"""
+                INNER JOIN product_options AS po
+                        ON po.product_id = ph.product_id
+
+                WHERE
+                    po.id = %(product_option_id)s
+                    AND ph.end_time = "{END_DATE}"
+                    AND ph.is_deleted = false
+                    AND ph.is_sold = true
+            """
+        
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, filters)
+
+            result = cursor.fetchone()
+
+            return result
         
     # 상품 옵션 판매 여부 확인
     def product_option_sold_out_check(self, connection, filters):
 
         query = """
             SELECT 
-                po.id,
-                po.is_sold_out
+                po.id
             FROM
                 product_options AS po
         """
@@ -77,12 +119,14 @@ class CartDao:
                         ON c.product_option_id = po.id
                 WHERE
                     c.id = %(cart_id)s
+                    AND po.is_sold_out = false
             """
         
         if filters.get("product_option_id"):
             query += """
                 WHERE
                     po.id = %(product_option_id)s
+                    AND po.is_sold_out = false
             """
         
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
@@ -160,15 +204,19 @@ class CartDao:
 
         query = f"""
             UPDATE
-                cart_histories
+                cart_histories AS ch
+            
+            INNER JOIN carts AS c
+                    ON c.id = ch.cart_id
 
             SET 
                 end_time = %(now)s
 
             WHERE
-                cart_id              = %(cart_id)s
-                AND end_time         = "{END_DATE}"
-                AND is_deleted       = false
+                user_id        = %(account_id)s
+                AND cart_id    = %(cart_id)s
+                AND end_time   = "{END_DATE}"
+                AND is_deleted = false
         """
 
         with connection.cursor() as cursor:
@@ -198,28 +246,29 @@ class CartDao:
         if not filters.get("quantity"):
             query += "quantity,"
 
-        if filters.get("quantity"):
-            query += "quantity + %(quantity)s,"
+        else:
+            query += "%(quantity)s,"
 
         if not filters.get("is_deleted"):
             query += "false"
         
-        if filters.get("is_deleted"):
+        else:
             query += "true"
 
         query += """
             FROM
                 cart_histories AS ch
+            
+            INNER JOIN carts AS c
+                    ON c.id = ch.cart_id
 
-            WHERE 
-                cart_id        = %(cart_id)s
+            WHERE
+                user_id        = %(account_id)s
+                AND cart_id    = %(cart_id)s
                 AND end_time   = %(now)s
                 AND is_deleted = false
         """
 
-        if filters.get("quantity"):
-            query += "AND quantity + %(quantity)s > 0"
-        
         with connection.cursor() as cursor:
 
             result = cursor.execute(query, filters)
@@ -228,32 +277,31 @@ class CartDao:
 
 class OrderDao:
 
-    def get_defaulted_true_shipment_information(self, data, connection):
-        data['END_DATE'] = END_DATE
+    def get_defaulted_true_shipment_information(self, connection, filters):
 
-        query = """
+        query = f"""
             SELECT 
-                ah.id,
+                ah.id AS address_history_id,
                 address_id,
                 name,
                 phone_number,
-                address,
-                is_deleted,
-                is_defaulted
+                address
 
-            FROM address_histories AS ah
+            FROM
+                address_histories AS ah
 
             INNER JOIN addresses AS ad
-            ON ad.id = ah.address_id
+                    ON ad.id = ah.address_id
 
-            WHERE user_id = %(user_id)s
-            AND ah.end_time = %(END_DATE)s
-            AND is_defaulted = true;
+            WHERE
+                user_id          = %(account_id)s
+                AND ah.end_time  = "{END_DATE}"
+                AND is_defaulted = true
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
-            cursor.execute(query, data)
+            cursor.execute(query, filters)
 
             result = cursor.fetchone()
 
@@ -265,7 +313,9 @@ class OrderDao:
             SELECT 
                 id,
                 content
-            FROM shipment_memo
+
+            FROM
+                shipment_memo
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
@@ -296,11 +346,33 @@ class OrderDao:
             result = cursor.fetchall()
 
             return result
-            
-    def insert_shipment_information(self, data, connection):
-        data['END_DATE'] = END_DATE
+    
+    def get_discount_product_check(self, connection, filters):
 
-        query = """
+        query = f"""
+            SELECT
+                ph.price - TRUNCATE((ph.price * (ph.discount_rate/100)), -1) AS sale_price
+
+            FROM product_histories AS ph
+
+            WHERE
+                ph.product_id     = %(product_id)s
+                AND ph.is_sold    = true
+                AND ph.end_time   = "{END_DATE}"
+                AND ph.is_deleted = false
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, filters)
+
+            result = cursor.fetchone()
+
+            return result
+
+    def insert_shipment_information(self, connection, filters):
+
+        query = f"""
             INSERT INTO shipments (
                 order_id,
                 order_product_id,
@@ -313,19 +385,20 @@ class OrderDao:
                 %(order_id)s,
                 %(order_product_id)s,
                 %(address_id)s,
-                1,
+                "{SHIPMENT_READY}",
                 %(shipment_memo_id)s,
                 %(message)s
+
             )
         """
 
-        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+        with connection.cursor() as cursor:
             
-            result = cursor.execute(query, data)
+            result = cursor.execute(query, filters)
 
             return result
 
-    def insert_order_information(self, data, connection):
+    def insert_order_information(self, connection, filters):
 
         query = """
             INSERT INTO orders (
@@ -333,23 +406,22 @@ class OrderDao:
                 created_at
                 )
             VALUES (
-                %(user_id)s,
+                %(account_id)s,
                 %(now)s
             )
         """
 
         with connection.cursor() as cursor:
 
-            cursor.execute(query, data)
+            cursor.execute(query, filters)
 
             result = cursor.lastrowid
 
             return result
     
-    def insert_order_history_information(self, data, connection):
-        data['END_DATE'] = END_DATE
+    def insert_order_history_information(self, connection, filters):
         
-        query = """
+        query = f"""
             INSERT INTO order_histories (
                 payment_status_id,
                 order_id,
@@ -362,10 +434,10 @@ class OrderDao:
                 orderer_email
             )
             VALUES (
-                2,
+                "{PAYMENT_COMPLETE}",
                 %(order_id)s,
                 %(now)s,
-                %(END_DATE)s,
+                "{END_DATE}",
                 %(total_price)s,
                 false,
                 %(orderer_name)s,
@@ -376,14 +448,14 @@ class OrderDao:
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
-            cursor.execute(query, data)
+            cursor.execute(query, filters)
 
             result = cursor.lastrowid
 
             return result
 
     
-    def insert_order_product_information(self, data, connection):
+    def insert_order_product_information(self, connection, filters):
 
         query = """
             INSERT INTO order_products (
@@ -391,6 +463,7 @@ class OrderDao:
                 product_option_id,
                 product_id
             )
+
             VALUES (
                 %(order_id)s,
                 %(product_option_id)s,
@@ -400,38 +473,126 @@ class OrderDao:
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
-            cursor.execute(query, data)
+            cursor.execute(query, filters)
 
             result = cursor.lastrowid
 
             return result
 
-    def insert_order_product_history_information(self, data, connection):
-        data['END_DATE'] = END_DATE
+    def insert_order_product_history_information(self, connection, filters):
 
-        query = """
+        query = f"""
             INSERT INTO order_product_histories (
                 order_status_id,
                 order_product_id,
                 start_time,
                 end_time,
                 is_canceled,
-                price,
-                quantity )
-            VALUES (
-                1,
+                quantity,
+                price
+            )
+
+            SELECT 
+                "{ORDER_COMPLETE}",
                 %(order_product_id)s,
                 %(now)s,
-                %(END_DATE)s,
+                "{END_DATE}",
                 false,
-                %(price)s,
-                %(quantity)s
-            )
+                ch.quantity,
+        """
+
+        if filters.get("sale_price"):
+            query += "%(sale_price)s"
+        
+        else:
+            query += "ch.price"
+
+        query += f"""
+            FROM
+                carts AS c
+            
+            INNER JOIN cart_histories AS ch
+                    ON c.id = ch.cart_id
+            INNER JOIN product_histories AS ph
+                    ON ph.product_id  = c.product_id
+                    AND ph.is_sold    = true
+                    AND ph.end_time   = "{END_DATE}"
+                    AND ph.is_deleted = false
+            
+            WHERE
+                c.user_id = %(account_id)s
+                AND c.id  = %(cart_id)s
+                AND c.product_option_id = %(product_option_id)s
+        """
+
+        with connection.cursor() as cursor:
+
+            result = cursor.execute(query, filters)
+
+            return result
+    
+    def update_product_option_stock(self, connection, filters):
+
+        query = """
+            UPDATE
+                product_options
+
+            SET
+                stock = stock - %(quantity)s
+
+            WHERE
+                id = %(product_option_id)s
+                AND stock - %(quantity)s > -10
+        """
+
+        with connection.cursor() as cursor:
+
+            result = cursor.execute(query, filters)
+
+            return result
+    
+    def update_product_option_is_sold_out(self, connection, filters):
+
+        query = """
+            UPDATE
+                product_options
+
+            SET
+                is_sold_out = true
+
+            WHERE
+                stock = -10
+        """
+
+        with connection.cursor() as cursor:
+
+            result = cursor.execute(query, filters)
+
+            return result
+
+    def get_order_complete_information(self, connection, filters):
+
+        query = """
+            SELECT
+                o.id,
+                oh.total_price
+            
+            FROM
+                order_histories AS oh
+            
+            INNER JOIN orders AS o
+                    ON o.id = oh.order_id
+            
+            WHERE
+                user_id  = %(account_id)s
+                AND o.id = %(order_id)s
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
-            result = cursor.execute(query, data)
+            cursor.execute(query, filters)
+
+            result = cursor.fetchone()
 
             return result
 
@@ -459,7 +620,7 @@ class ShipmentDao:
             ON ad.id = ah.address_id
             
             WHERE ad.user_id = %(user_id)s
-            AND ah.is_deleted = falseㅌ
+            AND ah.is_deleted = false
             AND ah.end_time = %(END_DATE)s
         """
 
