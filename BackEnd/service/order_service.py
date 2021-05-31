@@ -1,3 +1,4 @@
+from util.decorator import login_required
 from model          import CartDao, OrderDao, ShipmentDao, SelectNowDao
 from util.exception import *
 from util.message   import *
@@ -61,6 +62,11 @@ class CartService:
             else:
                 # filters에 해당 카트 아이디 추가
                 filter["cart_id"] = cart_information["cart_id"]
+
+                # 선분이력을 위한 cart_history_id 가져오기
+                cart_history_id           = cart_dao.get_cart_history_id_end_time(connection, filter)
+                filter["cart_history_id"] = cart_history_id["cart_history_id"]
+
                 # 선분이력 시간 끊기
                 change_time = cart_dao.update_cart_history_end_time(connection, filter)
 
@@ -104,6 +110,10 @@ class CartService:
         now            = now_dao.select_now(connection)
         filters["now"] = now
 
+        # 선분이력을 위한 cart_history_id 가져오기
+        cart_history_id            = cart_dao.get_cart_history_id_end_time(connection, filters)
+        filters["cart_history_id"] = cart_history_id["cart_history_id"]
+
         # 선분이력 시간 끊기
         change_time = cart_dao.update_cart_history_end_time(connection, filters)
 
@@ -130,6 +140,10 @@ class CartService:
 
             filter["now"]        = now
             filter["account_id"] = filters["account_id"]
+
+            # 선분이력을 위한 cart_history_id 가져오기
+            cart_history_id           = cart_dao.get_cart_history_id_end_time(connection, filter)
+            filter["cart_history_id"] = cart_history_id["cart_history_id"]
 
             # 선분이력 시간 끊기
             change_time = cart_dao.update_cart_history_end_time(connection, filter)
@@ -158,9 +172,13 @@ class OrderService:
         # 배송지 메모 리스트 가져오기
         shipment_memo_information = order_dao.get_shipment_memo_information(connection)
 
+        # 주문자 정보 가져오기
+        orderer_information       = order_dao.get_orderer_information(connection, filters)  
+
         result = {
             "shipment_information"      : shipment_information,
-            "shipment_memo_information" : shipment_memo_information
+            "shipment_memo_information" : shipment_memo_information,
+            "orderer_information"       : orderer_information
         }
 
         return result
@@ -202,7 +220,6 @@ class OrderService:
 
         # carts의 갯수만큼 for문을 돌려서 각각 데이터 입력
         for cart in carts:
-            cart["account_id"] = filters["account_id"]
             cart["now"]        = now
             cart["account_id"] = copy_data["account_id"]
             cart["order_id"]   = order_id
@@ -252,6 +269,10 @@ class OrderService:
 
             if not result:
                 raise InsertShipmentInformationError(INSERT_SHIPMENT_INFORMATION_ERROR, 400)
+
+            # 선분이력을 위한 cart_history_id 가져오기
+            cart_history_id         = cart_dao.get_cart_history_id_end_time(connection, cart)
+            cart["cart_history_id"] = cart_history_id["cart_history_id"]
             
             # 주문 완료 후 cart_histories에서 시간 끊기
             change_time = cart_dao.update_cart_history_end_time(connection, cart)
@@ -290,193 +311,179 @@ class OrderCompleteService:
 
 class ShipmentService:
     
-    def insert_address_information(self, data, connection):
+    def insert_address_information(self, connection, filters):
 
         shipment_dao = ShipmentDao()
         order_dao    = OrderDao()
         now_dao      = SelectNowDao()
 
         # 현재 시점 선언
-        now = now_dao.select_now(connection)
-            
-        # data 에 현재 시점 추가
-        data['now'] = now
+        now            = now_dao.select_now(connection)
+        filters["now"] = now
 
-        shipment_information = shipment_dao.get_all_shipment_information(data, connection)
+        shipment_information = shipment_dao.get_all_shipment_information(connection, filters)
 
         # 배송지 주소 정보가 5개 일때
-        if len(shipment_information) == 5:
+        if len(shipment_information) >= 5:
             raise MaximumShipmentInformationError(MAXIMUM_SHIPMENT_INFORMATION_ERROR, 400)
+        
+        address_id            = shipment_dao.insert_address_information(connection, filters)
+        filters["address_id"] = address_id
 
         # 기본 배송지로 설정할때
-        if data['is_defaulted'] == True:
-            address_id = shipment_dao.insert_address_information(data, connection)
+        if filters["is_defaulted"] is True:
 
-            data['address_id'] = address_id
-
-            defaulted_true = order_dao.get_defaulted_true_shipment_information(data, connection)
+            defaulted_true             = order_dao.get_defaulted_true_shipment_information(connection, filters)
 
             # 기존에 기본 배송지가 존재하지 않는 경우
             if not defaulted_true:
-                insert_address_history = shipment_dao.insert_address_history_information(data, connection)
+                insert_address_history = shipment_dao.insert_address_history_information(connection, filters)
+
+                if not insert_address_history:
+                    raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+            
+            # 기존에 기본 배송지가 존재하는 경우
+            else:
+                defaulted_true["account_id"] = filters["account_id"]
+                defaulted_true["now"]        = now
+
+                update_address               = shipment_dao.update_address_history_end_time(connection, defaulted_true)
+
+                if not update_address:
+                    raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
+                
+                defaulted_true["is_defaulted"] = False
+                insert_address_history         = shipment_dao.insert_address_history_information(connection, defaulted_true)
+
+                if not insert_address_history:
+                    raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+                
+                insert_address_history = shipment_dao.insert_address_history_information(connection, filters)
+
+                if not insert_address_history:
+                    raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+        
+        # 기본 배송지로 설정하지 않을때
+        else:
+            # 이전에 주소를 설정한적이 없으면 기본 배송지로 자동 설정
+            if len(shipment_information) == 0:
+                filters['is_defaulted'] = True
+                insert_address_history  = shipment_dao.insert_address_history_information(connection, filters)
+
+                if not insert_address_history:
+                    raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+            
+            else:
+                insert_address_history = shipment_dao.insert_address_history_information(connection, filters)
+
+        return insert_address_history
+
+    # 이미 등록된 배송지 정보 바꿀때
+    def update_address_information(self, connection, filters):
+
+        shipment_dao = ShipmentDao()
+        now_dao      = SelectNowDao()
+        order_dao    = OrderDao()
+
+        # 현재 시점 선언
+        now            = now_dao.select_now(connection)
+        filters['now'] = now
+
+        # 기본 배송지 가져오기
+        defaulted_true = order_dao.get_defaulted_true_shipment_information(connection, filters)
+
+        # is_defaulted == True 일때
+        if filters["is_defaulted"] is True:
+            
+            # 기본 배송지에 정보 추가,수정
+            defaulted_true["now"]        = now
+            defaulted_true["account_id"] = filters["account_id"]
+
+            # 기본 배송지 정보 바꿀때
+            if defaulted_true["address_id"] == filters["address_id"]:
+
+                # 기본 배송지 end_time 변경
+                update_address_end_time = shipment_dao.update_address_history_end_time(connection, defaulted_true)
+                if not update_address_end_time:
+                    raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
+            
+                insert_address_history = shipment_dao.insert_address_history_information(connection, filters)
+
+                if not insert_address_history:
+                    raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+            
+            # 일반 배송지 기본 배송지로 바꿀때
+            else:
+                # 기본 배송지 end_time 변경
+                update_address_end_time = shipment_dao.update_address_history_end_time(connection, defaulted_true)
+                if not update_address_end_time:
+                    raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
+
+                # 기본 배송지 -> 일반 배송지로 변경
+                defaulted_true["is_defaulted"] = False
+                insert_address_history = shipment_dao.insert_address_history_information(connection, defaulted_true)
+
+                if not insert_address_history:
+                    raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
+                
+                # 일반 배송지 end_time 변경
+                update_address_end_time = shipment_dao.update_address_history_end_time(connection, filters)
+                if not update_address_end_time:
+                    raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
+
+                # 일반 배송지 -> 기본 배송지로 변경
+                insert_address_history = shipment_dao.insert_address_history_information(connection, filters)
 
                 if not insert_address_history:
                     raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
 
-                return insert_address_history
-            
-            # 기존에 기본 배송지가 존재하는 경우
-            defaulted_true['now'] = now
-            update_address = shipment_dao.update_address_history_end_time(defaulted_true, connection)
-
-            if not update_address:
-                raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
-            
-            defaulted_true['is_defaulted'] = False
-            insert_address_history = shipment_dao.insert_address_history_information(defaulted_true, connection)
-
-            if not insert_address_history:
-                raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
-            
-            data['address_id'] = address_id
-            insert_address_history = shipment_dao.insert_address_history_information(data, connection)
-
-            if not insert_address_history:
-                raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
-            
-            return insert_address_history
-        
-        # 기본 배송지로 설정하지 않을때
-        address_id = shipment_dao.insert_address_information(data, connection)
-
-        data['address_id'] = address_id
-
-        # 이전에 주소를 설정한적이 없으면 기본 배송지로 자동 설정
-        if len(shipment_information) == 0:
-            data['is_defaulted'] = True
-            insert_address_history = shipment_dao.insert_address_history_information(data, connection)
-
-            if not insert_address_history:
-                raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
-
-            return insert_address_history
-        
-        insert_address_history = shipment_dao.insert_address_history_information(data, connection)
-
-        return insert_address_history
-    
-    # 이미 등록된 배송지 정보 바꿀때
-    def update_address_information(self, data, connection):
-
-        shipment_dao = ShipmentDao()
-        now_dao      = SelectNowDao()
-        order_dao    = OrderDao()
-
-        # 현재 시점 선언
-        now = now_dao.select_now(connection)
-            
-        # data 에 현재 시점 추가
-        data['now'] = now
-
-        # 기본 배송지 가져오기
-        defaulted_true = order_dao.get_defaulted_true_shipment_information(data, connection)
-        
-        # 기본 배송지 정보 수정할때
-        if data['id'] == defaulted_true['id']:
-            # 데이터 정보 insert
-            insert_address_history = shipment_dao.insert_address_history_information(data, connection)
-
-            if not insert_address_history:
-                raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
-
-            # insert 후 이전 기본 배송지 시간 끊기
-            data['is_defaulted'] = False
-            update_address=shipment_dao.update_address_history_end_time(data, connection)
-            
-            if not update_address:
-                raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
-            
-            return update_address
-
-        # 일반 배송지를 기본 배송지로 선택할 때
-        if data['is_defaulted'] == True:
-            
-            # 기본 배송지에 정보 추가,수정
-            defaulted_true['now'] = now
-
-            # 기본 배송지 end_time 변경
-            update_address_end_time = shipment_dao.update_address_history_end_time(defaulted_true, connection)
-            if not update_address_end_time:
-                raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
-            
-            defaulted_true['is_defaulted'] = False
-            insert_address_history = shipment_dao.insert_address_history_information(defaulted_true, connection)
-
-            if not insert_address_history:
-                raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
-            
-            # 변경할 데이터 시간 끊기
-            data['is_defaulted'] = False
-            update_address_end_time = shipment_dao.update_address_history_end_time(data, connection)
-
+        # is_defaulted == False 일때
+        else:
+            # 일반 배송지 end_time 변경
+            update_address_end_time = shipment_dao.update_address_history_end_time(connection, filters)
             if not update_address_end_time:
                 raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
 
-            # 변경할 데이터 정보 insert
-            data['is_defaulted'] = True
-            insert_address_history = shipment_dao.insert_address_history_information(data, connection)
-
+            # 일반 배송지 정보 변경
+            insert_address_history = shipment_dao.insert_address_history_information(connection, filters)
             if not insert_address_history:
                 raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
-            
-            return insert_address_history
-
-        # 일반 배송지 일반 정보만 수정할 때
-        # 변경할 데이터 시간 끊기
-        update_address_end_time = shipment_dao.update_address_history_end_time(data, connection)
-        if not update_address_end_time:
-            raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
-
-        # 변경할 데이터 정보 insert
-        insert_address_history = shipment_dao.insert_address_history_information(data, connection)
-        if not insert_address_history:
-            raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
-            
+        
         return insert_address_history
 
-    def get_address_information(self, data, connection):
+    def get_address_information(self, connection, filters):
 
         shipment_dao = ShipmentDao()
 
         # 배송지 정보 가져오기
-        shipment_information = shipment_dao.get_all_shipment_information(data, connection)
+        shipment_information = shipment_dao.get_all_shipment_information(connection, filters)
 
         return shipment_information
     
-    def delete_address_information(self, data, connection):
+    def delete_address_information(self, connection, filters):
 
         shipment_dao = ShipmentDao()
         now_dao      = SelectNowDao()
 
-        # 현재 시점 선언
-        now = now_dao.select_now(connection)
-            
-        # data 에 현재 시점 추가
-        data['now'] = now
+        # 프론트로부터 받은 address_id 로 주소 정보 가져오기
+        address_information = shipment_dao.get_one_shipment_information(connection, filters)
 
-
-        if data['is_defaulted'] == True:
+        if address_information["is_defaulted"] is True:
             raise DeleteAddressInformationError(DELETE_ADDRESS_INFORMATION_ERROR, 400)
 
+        # 현재 시점 선언
+        now                               = now_dao.select_now(connection)
+        address_information["now"]        = now
+        address_information["account_id"] = filters["account_id"]
+
         # 데이터 정보 시간 끊기
-        data['is_deleted'] = False
-        update_address_end_time = shipment_dao.update_address_history_end_time(data, connection)
+        update_address_end_time = shipment_dao.update_address_history_end_time(connection, address_information)
         if not update_address_end_time:
             raise UpdateAddressHistoryEndTimeError(UPDATE_ADDRESS_HISTORY_END_TIME_ERROR, 400)
 
         # 변경할 데이터 정보 insert
-        data['is_deleted'] = True
-        insert_address_history = shipment_dao.insert_address_history_information(data, connection)
+        address_information["is_deleted"] = True
+        insert_address_history = shipment_dao.insert_address_history_information(connection, address_information)
         if not insert_address_history:
             raise InsertAddressHistoryInformationError(INSERT_ADDRESS_HISTORY_INFORMATION_ERROR, 400)
         
