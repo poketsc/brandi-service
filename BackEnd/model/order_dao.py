@@ -198,6 +198,33 @@ class CartDao:
             result = cursor.fetchall()
 
             return result
+    
+    def get_cart_history_id_end_time(self, connection, filters):
+
+        query = f"""
+            SELECT
+                ch.id AS cart_history_id
+
+            FROM
+                cart_histories AS ch
+
+            INNER JOIN carts AS c
+                    ON c.id = ch.cart_id
+
+            WHERE
+                c.id              = %(cart_id)s
+                AND c.user_id     = %(account_id)s
+                AND ch.end_time   = "{END_DATE}"
+                AND ch.is_deleted = false
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, filters)
+
+            result = cursor.fetchone()
+
+            return result
 
     # 카트 히스토리 선분이력 시간 끊기(end_time 시간 DB 기준 now로 설정)
     def update_cart_history_end_time(self, connection, filters):
@@ -265,7 +292,7 @@ class CartDao:
             WHERE
                 user_id        = %(account_id)s
                 AND cart_id    = %(cart_id)s
-                AND end_time   = %(now)s
+                AND ch.id      = %(cart_history_id)s
                 AND is_deleted = false
         """
 
@@ -285,7 +312,10 @@ class OrderDao:
                 address_id,
                 name,
                 phone_number,
-                address
+                address,
+                additional_address,
+                zip_code,
+                is_deleted
 
             FROM
                 address_histories AS ah
@@ -295,7 +325,8 @@ class OrderDao:
 
             WHERE
                 user_id          = %(account_id)s
-                AND ah.end_time  = "{END_DATE}"
+                AND end_time     = "{END_DATE}"
+                AND is_deleted   = false
                 AND is_defaulted = true
         """
 
@@ -323,6 +354,33 @@ class OrderDao:
             cursor.execute(query)
 
             result = cursor.fetchall()
+
+            return result
+
+    def get_orderer_information(self, connection, filters):
+
+        query = """
+            SELECT
+                oh.orderer_name,
+                oh.orderer_phone_number,
+                oh.orderer_email
+
+            FROM
+                order_histories AS oh
+
+            INNER JOIN orders AS o
+                    ON o.id = oh.order_id
+
+            WHERE o.user_id = %(account_id)s
+
+            ORDER BY o.created_at DESC
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, filters)
+
+            result = cursor.fetchone()
 
             return result
     
@@ -388,10 +446,9 @@ class OrderDao:
                 "{SHIPMENT_READY}",
                 %(shipment_memo_id)s,
                 %(message)s
-
             )
         """
-
+        
         with connection.cursor() as cursor:
             
             result = cursor.execute(query, filters)
@@ -542,7 +599,7 @@ class OrderDao:
 
             WHERE
                 id = %(product_option_id)s
-                AND stock - %(quantity)s > -10
+                AND stock - %(quantity)s > -11
         """
 
         with connection.cursor() as cursor:
@@ -561,7 +618,8 @@ class OrderDao:
                 is_sold_out = true
 
             WHERE
-                stock = -10
+                id        = %(product_option_id)s
+                AND stock = -10
         """
 
         with connection.cursor() as cursor:
@@ -598,12 +656,46 @@ class OrderDao:
 
 class ShipmentDao:
 
-    def get_all_shipment_information(self, data, connection):
-        data['END_DATE'] = END_DATE
+    def get_all_shipment_information(self, connection, filters):
 
-        query = """
+        query = f"""
             SELECT
-                ah.id
+                ah.id AS address_history_id,
+                ad.id AS address_id,
+                start_time,
+                end_time,
+                name,
+                phone_number,
+                is_deleted,
+                is_defaulted,
+                address,
+                additional_address,
+                zip_code
+
+            FROM
+                address_histories as ah
+
+            INNER JOIN addresses as ad
+                    ON ad.id = ah.address_id
+            
+            WHERE
+                ad.user_id        = %(account_id)s
+                AND ah.is_deleted = false
+                AND ah.end_time   = "{END_DATE}"
+        """
+
+        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+
+            cursor.execute(query, filters)
+
+            result = cursor.fetchall()
+
+            return result
+
+    def get_one_shipment_information(self, connection, filters):
+
+        query = f"""
+            SELECT
                 address_id,
                 start_time,
                 end_time,
@@ -611,73 +703,79 @@ class ShipmentDao:
                 phone_number,
                 is_deleted,
                 is_defaulted,
-                address
+                address,
+                additional_address,
+                zip_code
 
             FROM
-                address_histories as ah
+                address_histories AS ah
 
-            INNER JOIN addresses as ad
-            ON ad.id = ah.address_id
-            
-            WHERE ad.user_id = %(user_id)s
+            INNER JOIN addresses AS a
+                    ON a.id = ah.address_id
+
+            WHERE a.user_id   = %(account_id)s
+            AND ah.address_id = %(address_id)s
+            AND ah.end_time   = "{END_DATE}"
             AND ah.is_deleted = false
-            AND ah.end_time = %(END_DATE)s
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
 
-            cursor.execute(query, data)
+            cursor.execute(query, filters)
 
-            result = cursor.fetchall()
+            result = cursor.fetchone()
 
             return result
     
-    def insert_address_information(self, data, connection):
+    def insert_address_information(self, connection, filters):
 
         query = """
             INSERT INTO addresses (
                 user_id
             )
             VALUES (
-                %(user_id)s
+                %(account_id)s
             )
         """
 
         with connection.cursor(pymysql.cursors.DictCursor) as cursor:
             
-            cursor.execute(query, data)
+            cursor.execute(query, filters)
 
             result = cursor.lastrowid
 
             return result
     
     # 주소 업데이트 시간 끊기
-    def update_address_history_end_time(self, data, connection):
+    def update_address_history_end_time(self, connection, filters):
 
-        query = """
+        query = f"""
             UPDATE
-                address_histories
+                address_histories AS ah
+            
+            INNER JOIN addresses AS a
+                    ON a.id = ah.address_id
             
             SET
-                end_time = %(now)s,
-                is_defaulted = %(is_defaulted)s,
-                is_deleted = %(is_deleted)s
+                end_time = %(now)s
             
             WHERE
-                id = %(id)s
+                a.id              = %(address_id)s
+                AND a.user_id     = %(account_id)s
+                AND ah.end_time   = "{END_DATE}"
+                AND ah.is_deleted = false
         """
 
-        with connection.cursor(pymysql.cursors.DictCursor) as cursor:
+        with connection.cursor() as cursor:
 
-            result = cursor.execute(query, data)
+            result = cursor.execute(query, filters)
 
             return result
     
     # 주소 히스토리 추가
-    def insert_address_history_information(self, data, connection):
-        data['END_DATE'] = END_DATE
+    def insert_address_history_information(self, connection, filters):
         
-        query = """
+        query = f"""
             INSERT INTO
                 address_histories (
                     address_id,
@@ -687,22 +785,26 @@ class ShipmentDao:
                     phone_number,
                     is_deleted,
                     is_defaulted,
-                    address
-                )
+                    address,
+                    additional_address,
+                    zip_code
+            )
             VALUES (
                 %(address_id)s,
                 %(now)s,
-                %(END_DATE)s,
+                "{END_DATE}",
                 %(name)s,
                 %(phone_number)s,
                 %(is_deleted)s,
                 %(is_defaulted)s,
-                %(address)s
-                )
+                %(address)s,
+                %(additional_address)s,
+                %(zip_code)s
+            )
         """
 
         with connection.cursor() as cursor:
 
-            result = cursor.execute(query, data)
+            result = cursor.execute(query, filters)
 
             return result
