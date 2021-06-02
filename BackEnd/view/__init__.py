@@ -1,6 +1,10 @@
-from view.product_view import ProductView, ProductDetailView
-from view.order_view   import CartView, OrderCompleteView, OrderView, ShipmentView, OrderCompleteView
-from view.user_view    import AccountView
+from view.product_view        import ProductView
+from view.order_view          import OrderView
+from view.cart_view           import CartView
+from view.order_complete_view import OrderCompleteView
+from view.shipment_view       import ShipmentView
+from view.product_detail_view import ProductDetailView
+from view.user_view           import AccountView
 
 def create_endpoints(app):
     app.add_url_rule("/carts", view_func=CartView.as_view("cart_view"))

@@ -22,17 +22,23 @@ class ProductService:
 
         return {"products": products, "count": count[0]["count"]}
     
-    def get_product_detail_list(self, filters, connection):
+    def get_product_detail_list(self, connection, filters):
 
         product_dao = ProductDao()
 
-        product_detail             = product_dao.get_product_detail(filters, connection)
-        product_image              = product_dao.get_product_image(filters, connection)
-        product_option_information = product_dao.get_product_option_information(filters, connection)
+        # 상품 정보 가져오기
+        product_detail             = product_dao.get_product_detail(connection, filters)
+
+        # 상품 이미지들 가져오기
+        product_image              = product_dao.get_product_image(connection, filters)
+
+        # 상품 옵션 정보 가져오기
+        product_option_information = product_dao.get_product_option_information(connection, filters)
 
         # 셀러 아이디 filters에 추가
         filters["seller_id"] = product_detail["seller_id"]
 
+        # 셀러의 다른 상품 리스트 정보 가져오기
         product_list = product_dao.get_product_list(connection, filters)
 
         result = {
