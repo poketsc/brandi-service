@@ -1,12 +1,12 @@
 <template>
   <main>
     <article class="ProductInfo">
-      <agile v-if="detailData.images[0]" class="agile" :dots="false">
+      <agile v-if="images[0]" class="agile" :dots="false">
         <div class="imgContainer">
-          <img alt="product  image" :src="detailData.images[0].image_url" />
+          <img alt="product  image" :src="images[0].image_url" />
         </div>
 
-        <div v-for="image in detailData.images" class="imgContainer" :key="image">
+        <div v-for="image in images.slice(1)" class="imgContainer" :key="image">
           <img alt="product image" :src="image.image_url" />
         </div>
 
@@ -17,7 +17,7 @@
       </agile>
 
       <div class="detailInfoContainer">
-        <p class="title">{{ detailData.product_title }}</p>
+        <p class="title">{{ detailData.name }}</p>
         <div class="priceContainer">
           <span v-if="detailData.discount_rate" class="percent">
             {{ detailData.discount_rate }}%
@@ -26,7 +26,7 @@
             {{ detailData.price | makeComma }}원
           </span>
           <span v-if="detailData.discount_rate !== 0" class="cost">
-            {{ detailData.discount_price | makeComma }}원
+            {{ detailData.sale_price | makeComma }}원
           </span>
         </div>
         <hr />
@@ -38,6 +38,17 @@
           <OptionQuantity v-for="item in optionQuantity" :item="item" :key="item" @remove="removeOption"></OptionQuantity>
         </div>
 
+        <!--
+detail_page_html: "test_html"
+discount_rate: 10
+korean_name: "테스트샵"
+name: "롱슬리브"
+price: 30000
+sale_price: 27000
+seller_id: 2
+shipment_information: "브랜디 배송"
+total_order: 2
+          -->
         <div class="detailpriceContainer">
           <p>총 {{ totalCount }}개의 상품</p>
           <p class="totalPrice">
@@ -108,18 +119,19 @@ export default {
       .get(`${SERVER.IP}/products/${this.$route.params.id}`)
       .then((res) => {
         // console.log(res.data.result)
-        this.detailData = res.data.result
+        this.detailData = res.data.data.product_detail
+        this.images = res.data.data.product_image
         const colors = {}
         const colorList = []
         const sizes = {}
-        this.detailData.options.forEach(option => {
-          colors[option.color_id] = option.color_name
-          if (sizes[option.color_id] === undefined) {
-            sizes[option.color_id] = []
+        res.data.data.product_option_information.forEach(option => {
+          colors[option.color] = option.color
+          if (sizes[option.color] === undefined) {
+            sizes[option.color] = []
           }
-          let label = option.size_name
-          if (option.option_price > 0) label += ` (+${option.option_price}) `
-          sizes[option.color_id].push({ label: label, key: option.size_id, addPrice: option.option_price })
+          const label = option.size
+          // if (option.option_price > 0) label += ` (+${option.option_price}) `
+          sizes[option.color].push({ label: label, key: option.size, addPrice: 0, product_option_id: option.id })
         })
         for (const key in colors) {
           colorList.push({ label: colors[key], key: key, sizes: sizes[key] })
@@ -143,6 +155,7 @@ export default {
       optionQuantity: [],
       colors: [],
       sizes: [],
+      images: [],
 
       detailData: {
         id: 0,
@@ -212,8 +225,9 @@ export default {
             name: this.detailData.name,
             sizeName: sizeItem.label,
             colorName: colorItem.label,
-            price: this.detailData.discount_price,
+            price: this.detailData.sale_price || this.detailData.price,
             addPrice: sizeItem.addPrice,
+            product_option_id: sizeItem.product_option_id,
             quantity: 1
           })
         }
@@ -254,7 +268,7 @@ export default {
         localStorage.setItem('cart', JSON.stringify(orderData))
         this.$router.push('/order')
       } else {
-        alert('로그인이 필요한 서비스입니다.')
+        alert('로그인이 필요한 서비스입니다..')
         this.$router.push('/login')
       }
       // } else {
@@ -287,16 +301,11 @@ export default {
     }
     */
     makePayload() {
-      const payload = {
-        productId: this.$route.params.id,
-        products: []
-      }
+      const payload = { data: [] }
       for (let i = 0, len = this.optionQuantity.length; i < len; i++) {
-        payload.products.push({
+        payload.data.push({
           quantity: this.optionQuantity[i].quantity,
-          color: this.optionQuantity[i].colorName,
-          size: this.optionQuantity[i].sizeName,
-          price: this.optionQuantity[i].price
+          product_option_id: this.optionQuantity[i].product_option_id
         })
       }
       return payload
@@ -320,19 +329,15 @@ export default {
     addCart() {
       if (this.optionQuantity.length > 0) {
         if (this.getToken) {
-          API.methods.post(`${SERVER.IP}/cart`, this.makePayload())
+          API.methods.post(`${SERVER.IP}/carts`, this.makePayload())
             .then((res) => {
-              if (res.data.message === 'SUCCESS') {
-                this.$toast.open({
-                  message: '선택한 상품이 장바구니에 담겼습니다.',
-                  position: 'bottom',
-                  duration: 3000,
-                  type: 'default'
-                })
-                this.optionQuantity = []
-              } else {
-                //
-              }
+              this.$toast.open({
+                message: '선택한 상품이 장바구니에 담겼습니다.',
+                position: 'bottom',
+                duration: 3000,
+                type: 'default'
+              })
+              this.optionQuantity = []
             })
             .catch((error) => {
               this.$toast.open({

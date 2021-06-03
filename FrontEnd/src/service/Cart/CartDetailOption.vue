@@ -6,7 +6,7 @@
       </td>
       <td>
         <img
-          :src="this.list.imageUrl"
+          :src="this.list.image_url"
           alt=""
         />
       </td>
@@ -17,12 +17,12 @@
       <td>
         <div>
           <button v-on:click="subItem">-</button>
-          <input type="text" :value="this.list.quantity" >
+          <input type="text" :value="this.list.quantity" @change="changeItem">
           <button v-on:click="addItem">+</button>
         </div>
       </td>
       <td>
-        <span>{{ this.list.price * this.list.quantity | makeComma }}원</span>
+        <span>{{ (this.list.sale_price || this.list.price) * this.list.quantity | makeComma }}원</span>
         <button @click="nowBuyItem">바로주문</button>
       </td>
     </tr>
@@ -63,18 +63,19 @@ export default {
   methods: {
     subItem() {
       if (this.list.quantity <= 1) return
+      const prevQuantity = this.list.quantity
       this.list.quantity = this.list.quantity - 1
-      if (this.isChecked) {
-        const totalPrice = -this.list.price
-        EventBus.$emit('cal-price', totalPrice)
-      }
+      EventBus.$emit('update-quantity', this.list, prevQuantity)
     },
     addItem() {
+      const prevQuantity = this.list.quantity
       this.list.quantity = this.list.quantity + 1
-      if (this.isChecked) {
-        const totalPrice = +this.list.price
-        EventBus.$emit('cal-price', totalPrice)
-      }
+      EventBus.$emit('update-quantity', this.list, prevQuantity)
+    },
+    changeItem(e) {
+      const prevQuantity = this.list.quantity
+      this.list.quantity = parseInt(e.srcElement.value)
+      EventBus.$emit('update-quantity', this.list, prevQuantity)
     },
     checkItem() {
       if (this.isChecked) {

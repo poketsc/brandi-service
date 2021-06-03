@@ -146,7 +146,7 @@ export default {
     // this.sizeData = mockup.sizeData
     // mockup.options
     API.methods
-      .get(`${SERVER.IP}/mypage/order/${this.$route.params.no}`)
+      .get(`${SERVER.IP}/orders/${this.$route.params.no}`)
       .then((res) => {
         // console.log(res.data.result)
         this.detailData = res.data.result.data

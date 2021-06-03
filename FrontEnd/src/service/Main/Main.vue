@@ -69,7 +69,7 @@ export default {
     },
     linkToDetail(product) {
       // console.log(product)
-      this.$router.push(`/detail/${product.product_id}`)
+      this.$router.push(`/detail/${product.id}`)
     },
     moreItemBtn() {
       this.getProductData()

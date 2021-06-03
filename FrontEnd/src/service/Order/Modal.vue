@@ -8,19 +8,33 @@
           <span @click.self="$emit('close')" class="close">X</span>
         </div>
 
+<!--
+      /*
+      {
+          "name" : "plasdf2222",
+          "phone_number" : "01012345678",
+          "is_defaulted" : true,
+          "address" : "서울",
+          "additional_address" : "213동-2203호",
+          "zip_code" : 10432,
+          "is_deleted" : false
+      }
+      */
+
+  -->
         <div class="address-box" v-bind:class="{step2: !isNext}">
           <div v-if="isNext">
             <div class="address-detail-box" v-for="address in addresses" :key="address">
               <div class="address-detail-head">
                 <span>{{address.name}}</span>
-                <span class="default-address" v-show="address.isDefault == 1">
+                <span class="default-address" v-show="address.is_defaulted == 1">
                   기본배송지
                 </span>
               </div>
               <div class="address-detail-body">
                 <p>{{address.address}}</p>
-                <p>{{address.addressDetail}}</p>
-                <p>{{address.phone}}</p>
+                <p>{{address.additional_address}}</p>
+                <p>{{address.phone_number}}</p>
               </div>
               <div class="address-detail-footer">
                 <div>
@@ -52,7 +66,7 @@
                 <th>배송지</th>
                 <td>
                   <div>
-                    <input type="text" v-model="data.postal" maxlength="6"><button>우편번호 찾기</button>
+                    <input type="text" v-model="data.zip_code" maxlength="6"><button>우편번호 찾기</button>
                   </div>
                 </td>
               </tr>
@@ -65,7 +79,7 @@
               <tr class="address-to-box">
                 <th></th>
                 <td>
-                  <input type="text" placeholder="상세주소를 입력하세요" v-model="data.addressDetail">
+                  <input type="text" placeholder="상세주소를 입력하세요" v-model="data.additional_address">
                 </td>
               </tr>
             </table>
@@ -74,7 +88,7 @@
 
         <div class="step2-bottom" v-if="!isNext">
           <div class="bottom-isPrivate">
-            <label><CheckBox v-model="data.isDefault"></CheckBox> 기본 배송지로 저장</label>
+            <label><CheckBox v-model="data.is_defaulted"></CheckBox> 기본 배송지로 저장</label>
           </div>
           <div class="bottom-btns">
             <button @click="changeNext" class="cancle-btn">취소</button>
@@ -99,11 +113,12 @@ export default {
       phone: ['', '', ''],
       data: {
         name: '',
-        phone: '',
-        postal: '',
+        phone_number: '',
+        zip_code: '',
         address: '',
-        addressDetail: '',
-        isDefault: 1
+        is_deleted: 0,
+        additional_address: '',
+        is_defaulted: 1
       }
     }
   },
@@ -116,8 +131,8 @@ export default {
   methods: {
     makePayload() {
       const payload = JSON.parse(JSON.stringify(this.data))
-      payload.isDefault = payload.isDefault ? 1 : 0
-      payload.phone = this.phone.join('-')
+      payload.is_defaulted = payload.is_defaulted ? 1 : 0
+      payload.phone_number = this.phone.join('')
       return payload
     },
     changeNext() {
@@ -128,14 +143,14 @@ export default {
     },
     getAddress() {
       API.methods
-        .get(`${SERVER.IP}/address`)
+        .get(`${SERVER.IP}/shipments`)
         .then((res) => {
           // console.log(res.data.result)
-          this.addresses = res.data.result.data
+          this.addresses = res.data.data
         })
         .catch((e) => {
           // console.log(error)
-          this.$router.push('/main')
+          // this.$router.push('/main')
           alert(e.response.data.message)
         })
     },
@@ -158,7 +173,7 @@ export default {
     save() {
       const payload = this.makePayload()
       API.methods
-        .post(`${SERVER.IP}/address/add`, payload)
+        .post(`${SERVER.IP}/shipments`, payload)
         .then((res) => {
           // console.log(res.data.result)
           this.getAddress()
@@ -166,7 +181,7 @@ export default {
         })
         .catch((e) => {
           // console.log(error)
-          this.$router.push('/main')
+          // this.$router.push('/main')
           alert(e.response.data.message)
         })
     }

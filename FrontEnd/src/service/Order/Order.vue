@@ -21,15 +21,15 @@
         </tr>
         <tr
           class="order-list-product"
-          v-for="item in purchaseItems.optionQuantity"
+          v-for="item in purchaseItems.items"
           :key="item"
         >
           <td>
-            <img :src="purchaseItems.image" alt="" />
+            <img :src="item.image_url" alt="" />
           </td>
           <td>
             <div>{{ item.name }}</div>
-            <div>{{ item.colorName }} / {{ item.sizeName }} (일반배송)</div>
+            <div>{{ item.color }} / {{ item.size }} (일반배송)</div>
             <div>{{ item.quantity }}개</div>
           </td>
           <td>
@@ -52,7 +52,7 @@
             type="text"
             placeholder="이름"
             class="from-name input-name"
-            v-model="data.orderName"
+            v-model="data.orderer_name"
           />
         </td>
       </tr>
@@ -147,7 +147,7 @@
           <input
             type="text"
             class="address-code input-address"
-            v-model="shipingInfo.postal"
+            v-model="shipingInfo.zip_code"
             readonly
           />
           <input
@@ -159,7 +159,7 @@
           <input
             type="text"
             class="address-second input-address"
-            v-model="shipingInfo.addressDetail"
+            v-model="shipingInfo.additional_address"
             readonly
           />
           <span
@@ -174,8 +174,9 @@
           <DropDown
             :items="deliveryMessage"
             placeholder="배송시 요청사항을 선택해주세요"
-            v-model="data.shippingMemoTypeId"
+            v-model="data.shipment_memo_id"
           ></DropDown>
+          <textarea v-model="data.message" v-show="data.shipment_memo_id === 4" class="memo"></textarea>
         </td>
       </tr>
     </table>
@@ -211,8 +212,10 @@ export default {
     // const cartItem = JSON.parse(localStorage.getItem('cart'))
     // this.totalPrice = cartItem.totalPrice
     // this.cartList = cartItem.items
-    this.getDeliveryMessage()
-    this.purchaseItems = JSON.parse(localStorage.getItem('purchaseItems'))
+    this.getOderInfo()
+    // TODO 바로 구매랑 나눠야 하나?
+    this.purchaseItems = JSON.parse(localStorage.getItem('cart'))
+    console.log(this.purchaseItems)
   },
   data() {
     return {
@@ -228,17 +231,15 @@ export default {
       phone: ['', '', ''],
       email: ['', ''],
       data: {
-        orderId: '',
-        orderName: '',
-        orderPhone: '',
-        orderEmail: '',
-        shippingMemoTypeId: '',
-        shippingInfoId: '',
-        items: '',
-        totalPrice: ''
+        orderer_name: '',
+        order_phone: '',
+        total_price: '',
+        message: ''
       },
       purchaseItems: {},
-      shipingInfo: {},
+      shipingInfo: {
+        phone: ''
+      },
       modal: false,
       cartList: []
     }
@@ -249,23 +250,29 @@ export default {
   },
   computed: {
     shipongPhone() {
-      const phones = this.shipingInfo.phone
-        ? this.shipingInfo.phone.split('-')
-        : []
+      const phones = this.shipingInfo.phone_number || ''
+      // ? this.shipingInfo.phone.split('-')
+      // : []
       const arr = ['', '', '']
-      for (let i = 0, len = phones.length; i < len; i++) {
-        arr[i] = phones[i]
+      if (phones.length >= 3) {
+        arr[0] = phones.substr(0, 3)
+      }
+      if (phones.length >= 7) {
+        arr[1] = phones.substr(3, 7)
+      }
+      if (phones.length > 7) {
+        arr[2] = phones.substr(7)
       }
       return arr
     },
     totalPrice() {
       let total = 0
       for (
-        let i = 0, len = this.purchaseItems.optionQuantity.length;
+        let i = 0, len = this.purchaseItems.items.length;
         i < len;
         i++
       ) {
-        const item = this.purchaseItems.optionQuantity[i]
+        const item = this.purchaseItems.items[i]
         total += item.quantity * item.price
       }
       return total
@@ -279,41 +286,53 @@ export default {
       this.modal = false
     },
     chooseAddress(address) {
-      console.log(address)
       this.shipingInfo = address
       this.modal = false
     },
-    getDeliveryMessage() {
+    getOderInfo() {
       API.methods
-        .get(`${SERVER.IP}/shipping-memo`)
+        .get(`${SERVER.IP}/orders`)
         .then((res) => {
-          this.deliveryMessage = res.data.result.data.map((d) => {
-            return { label: d.contents, key: d.id }
+          const lastDeliveryInfo = res.data.data.shipment_information
+          const lastOrdererInfo = res.data.data.orderer_information
+          if (lastDeliveryInfo) {
+            this.shipingInfo = lastDeliveryInfo
+          }
+          if (lastOrdererInfo) {
+            this.data.orderer_name = lastOrdererInfo.orderer_name
+            const phoneNumber = lastOrdererInfo.orderer_phone_number
+            const emails = lastOrdererInfo.orderer_email.split('@')
+            this.phone[0] = phoneNumber.substr(0, 3)
+            this.phone[1] = phoneNumber.substr(3, 4)
+            this.phone[2] = phoneNumber.substr(7)
+            this.email[0] = emails[0]
+            this.email[1] = emails[1]
+          }
+          this.deliveryMessage = res.data.data.shipment_memo_information.map((d) => {
+            return { label: d.content, key: d.id }
           })
           console.log(res)
         })
         .catch((e) => {
-          // this.$router.push('/main')
           alert(e.data.message)
         })
     },
     makePayload() {
       const payload = JSON.parse(JSON.stringify(this.data))
-      payload.orderId = this.purchaseItems.orderId
-      payload.items = this.purchaseItems.items
-      payload.orderPhone = this.phone.join('-')
-      payload.orderEmail = this.email.join('@')
-      payload.shippingInfoId = this.shipingInfo.id
-      payload.totalPrice = this.totalPrice
+      payload.carts = this.purchaseItems.items.map(item => { return { cart_id: item.cart_id } })
+      payload.orderer_phone_number = this.phone.join('')
+      payload.orderer_email = this.email.join('@')
+      payload.total_price = this.totalPrice
+      payload.address_id = this.shipingInfo.address_id
       return payload
     },
     payment() {
       const payload = this.makePayload()
       API.methods
-        .patch(`${SERVER.IP}/confirmation`, payload)
+        .post(`${SERVER.IP}/orders`, payload)
         .then((res) => {
           alert('주문이 성공하였습니다.')
-          const detailId = res.data.result.data
+          const detailId = res.data.data.order_id
           this.$router.push('/order/detail/' + detailId)
         })
         .catch((e) => {
@@ -554,6 +573,14 @@ export default {
     font-size: 20px;
     color: white;
     background-color: black;
+  }
+  textarea {
+    width: 100%;
+    height: 70px;
+    padding: 15px;
+    color: #666;
+    margin-top: 10px;
+    border: 1px solid #999;
   }
 }
 </style>

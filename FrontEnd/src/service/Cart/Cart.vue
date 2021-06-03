@@ -64,36 +64,58 @@ import { EventBus } from '@/service/util/event-bus'
 
 export default {
   created() {
-    API.methods.get(`${SERVER.IP}/cart`).then((res) => {
+    API.methods.get(`${SERVER.IP}/carts`).then((res) => {
       // 한번 수정하기
-      const result = res.data.result.data.cartList
-      for (let i = 0, len = result.length; i < len; i++) {
-        for (let z = 0, len2 = result[i].detail.length; z < len2; z++) {
-          result[i].detail[z].checked = false
+      const result = res.data.data
+      const sellerMap = {}
+      result.forEach(item => {
+        if (sellerMap[item.seller_id] === undefined) {
+          sellerMap[item.seller_id] = {
+            brandName: item.korean_name,
+            detail: []
+          }
         }
+        item.checked = false
+        sellerMap[item.seller_id].detail.push(item)
+      })
+
+      // for (let i = 0, len = result.length; i < len; i++) {
+      //   for (let z = 0, len2 = result[i].detail.length; z < len2; z++) {
+      //     // result[i].detail[z].checked = false
+      //     console.log('a')
+      //   }
+      // }
+      const resultList = []
+      for (const key in sellerMap) {
+        resultList.push(sellerMap[key])
       }
-      this.cartList = result
-      this.totalCount = res.data.result.totalCount
+      this.cartList = resultList
+      this.totalCount = res.data.data.length
     })
 
-    EventBus.$on('check-item', (item) => {
-      this.selectItems.push(item)
-
-      if (this.totalCount === this.selectItems.length) {
-        document.getElementById('allSelect').arrt('checked')
-      } else {
-        document.getElementById('allSelect').removeAttribute('checked')
-      }
+    EventBus.$on('update-quantity', (item, prevQuantity) => {
+      this.updateCartOptipn(item, prevQuantity)
+      // console.log(item)
     })
 
-    EventBus.$on('unCheck-item', (item) => {
-      for (let i = 0; i < this.selectItems.length; i++) {
-        if (this.selectItems[i].id === item.id) {
-          this.selectItems.splice(i, 1)
-          break
-        }
-      }
-    })
+    // EventBus.$on('check-item', (item) => {
+    //   this.selectItems.push(item)
+
+    //   if (this.totalCount === this.selectItems.length) {
+    //     document.getElementById('allSelect').arrt('checked')
+    //   } else {
+    //     document.getElementById('allSelect').removeAttribute('checked')
+    //   }
+    // })
+
+    // EventBus.$on('unCheck-item', (item) => {
+    //   for (let i = 0; i < this.selectItems.length; i++) {
+    //     if (this.selectItems[i].id === item.id) {
+    //       this.selectItems.splice(i, 1)
+    //       break
+    //     }
+    //   }
+    // })
   },
   updated() {
     // this.totalPrice = this.calTotalPrice()
@@ -156,28 +178,47 @@ export default {
     CartOption
   },
   methods: {
+    async updateCartOptipn(cart, prevQuantity) {
+      // 카트 수량 변경
+      const payload = {
+        cart_id: cart.cart_id,
+        quantity: cart.quantity
+      }
+      try {
+        await API.methods.patch(`${SERVER.IP}/carts`, payload)
+      } catch (e) {
+        console.log(e)
+        cart.quantity = prevQuantity
+        alert('장바구니 수량 변경에 실패하였습니다')
+      }
+    },
     selectDelete() {
       if (this.selectItems.length > 0) {
-        API.methods
-          .delete(`${SERVER.IP}/cart`, {
-            data: {
-              productOptionIds: this.selectItems.map((d) => {
-                return d.id
-              })
-            }
+        const payload = {
+          data: this.selectItems.map(item => {
+            return { cart_id: item.cart_id }
           })
+        }
+        API.methods
+          .delete(`${SERVER.IP}/carts`, { data: payload })
           .then((res) => {
-            if (res.data.message === 'SUCCESS') {
-              // 삭제 하였다면 리스트 삭제
-              for (let i = 0, len = this.cartList.length; i < len; i++) {
-                for (let z = 0; z < this.cartList[i].detail.length; z++) {
-                  if (this.cartList[i].detail[z].checked) {
-                    this.cartList[i].detail.splice(z, 1)
-                    z--
-                  }
+            // if (res.data.message === 'SUCCESS') {
+            // 삭제 하였다면 리스트 삭제
+            for (let i = 0, len = this.cartList.length; i < len; i++) {
+              for (let z = 0; z < this.cartList[i].detail.length; z++) {
+                if (this.cartList[i].detail[z].checked) {
+                  this.cartList[i].detail.splice(z, 1)
+                  z--
                 }
               }
             }
+            this.$toast.open({
+              message: '선택한 장바구니가 삭제되었습니다.',
+              position: 'bottom',
+              duration: 3000,
+              type: 'default'
+            })
+            // }
             // alert(res)
           })
       }
@@ -187,6 +228,16 @@ export default {
         // const cartArray = []
         // for (let i = 0; i < this.selectItems.length; i++) {
         //   this.selectItems[i]
+        // }
+        // const payload = {
+        //   carts: this.selectItems.map(item => { return { cart_id: item.cart_id } }),
+        //   orderer_name: 'David',
+        //   orderer_phone_number: '01012345678',
+        //   orderer_email: 'asdf@gmail.com',
+        //   address_id: 1,
+        //   shipment_memo_id: 1,
+        //   message: '하이루',
+        //   total_price: 200000
         // }
 
         const data = {

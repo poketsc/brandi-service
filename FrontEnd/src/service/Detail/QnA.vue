@@ -71,7 +71,7 @@ import API from '@/service/util/service-api'
 
 export default {
   created() {
-    this.loadData()
+    // this.loadData()
   },
   props: {
     title: String,
@@ -93,7 +93,7 @@ export default {
   },
   methods: {
     changePage() {
-      this.loadData()
+      // this.loadData()
     },
     loadData() {
       const params = {
@@ -129,7 +129,7 @@ export default {
   },
   watch: {
     answerType() {
-      this.loadData()
+      // this.loadData()
     }
   }
 }

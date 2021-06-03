@@ -1,7 +1,7 @@
 const serviceStore = {
   namespaced: true,
   state: {
-    accessToken: localStorage.getItem('access_token')
+    accessToken: localStorage.getItem('service_token')
   },
   getters: {
     getToken(state) {
@@ -10,7 +10,7 @@ const serviceStore = {
   },
   mutations: {
     getStorageToken(state) {
-      state.accessToken = localStorage.getItem('access_token')
+      state.accessToken = localStorage.getItem('service_token')
     }
   }
 }

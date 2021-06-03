@@ -64,14 +64,14 @@ export default {
 
       // axios 사용함에 있어 body에 빈 객체를 넣어야 post에서 headers의 정보를 보내기가 가능하다.
       const data = {
-        username: this.username,
+        nickname: this.username,
         password: this.password
       }
       const headers = {
         headers: { Authorization: googleUser.wc.id_token }
       }
       API.methods
-        .post(`${SERVER.IP}/user/signin`, data, headers)
+        .post(`${SERVER.IP}/login`, data, headers)
         .then((res) => {
           if (res.data.access_token) {
             localStorage.setItem('access_token', res.data.access_token)
@@ -94,18 +94,19 @@ export default {
     },
     login() {
       const data = {
-        username: this.username,
+        nickname: this.username,
         password: this.password
       }
-      API.methods.post(`${SERVER.IP}/user/signin`, data)
+      API.methods.post(`${SERVER.IP}/login`, data)
         .then((res) => {
-          localStorage.setItem('service_token', res.data.result.accessToken)
+          localStorage.setItem('service_token', res.data.access_token)
           this.$router.push('/main')
         })
-        .catch(() => {
+        .catch((e) => {
+          // e.response.data.message
           alert('로그인이 실패하였습니다. 다시 시도해주세요.')
-          this.username = ''
-          this.password = ''
+          // this.username = ''
+          // this.password = ''
         })
     }
   }
