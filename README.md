@@ -8,9 +8,10 @@
 - BackEnd
 - Python(3.8.8), Flask(1.1.2), MySQL, AqueryTool
 ## 협업 도구
-- ![Slack](https://img.shields.io/badge/-Slack-D91D57)
-- ![Git](https://img.shields.io/badge/-Git-black)
-- ![Trello](https://img.shields.io/badge/-Trello-036AA7)
+- Slack
+- Notion
+- Github
+- Postman
 ## 구현 내용 
 
 ## BackEnd
